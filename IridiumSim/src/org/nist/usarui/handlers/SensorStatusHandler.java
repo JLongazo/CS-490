@@ -1,0 +1,262 @@
+/*****************************************************************************
+  DISCLAIMER:
+  This software was produced in part by the National Institute of Standards
+  and Technology (NIST), an agency of the U.S. government, and by statute is
+  not subject to copyright in the United States.  Recipients of this software
+  assume all responsibility associated with its operation, modification,
+  maintenance, and subsequent redistribution.
+*****************************************************************************/
+
+package org.nist.usarui.handlers;
+
+import org.nist.usarui.*;
+import org.nist.usarui.ui.IridiumUI;
+
+import java.util.*;
+
+/**
+ * Suppresses sensor messages and displays an info bar with the contents instead.
+ * Handles most sensors!
+ *
+ * @author Stephen Carlson (NIST)
+ */
+public class SensorStatusHandler extends AbstractStatusHandler {
+	/**
+	 * The maximum number of entries shown in long data sets before truncation.
+	 */
+	public static final int MAX_ENTRIES = 10;
+	
+	public double currentX;
+	public double gx;
+	public double currentY;
+	public double gy;
+	public double direction;
+	public double gd;
+	public boolean going;
+	public boolean push;
+	public double range;
+	private boolean p1 = true;
+
+	/**
+	 * Returns the 3-vector with colors.
+	 *
+	 * @param vec the string value
+	 * @param convert whether radian to degree conversion will be applied
+	 * @return the value reformatted for display
+	 */
+	private static String color3Vector(String vec, boolean convert) {
+		Vec3 vector = Utils.read3Vector(vec); String deg = "";
+		vector = vector.radToDeg(convert);
+		if (convert)
+			deg = DEG_SIGN;
+		return String.format("<font color=\"#990000\">%.2f</font>%s <font color=\"#009900\">" +
+			"%.2f</font>%s <font color=\"#000099\">%.2f</font>%s", vector.getX(), deg,
+			vector.getY(), deg, vector.getZ(), deg);
+	}
+	/**
+	 * Converts the floating point value to a sensible screen value.
+	 *
+	 * @param value the string value
+	 * @param convert whether radian to degree conversion will be applied
+	 * @return the value reformatted for display
+	 */
+	private static String floatString(String value, boolean convert) {
+		String out = null, token, deg; int index = 0; float f;
+		if (value != null)
+			try {
+				StringTokenizer str = new StringTokenizer(value, ",");
+				StringBuilder output = new StringBuilder(3 * value.length() / 2);
+				// Convert comma delimited to screen (if there is only one value, this works too)
+				while (str.hasMoreTokens() && index < MAX_ENTRIES) {
+					token = str.nextToken().trim();
+					f = Float.parseFloat(token);
+					// Apply conversion to degrees if necessary
+					if (convert) {
+						f = (float)Math.toDegrees(f);
+						deg = DEG_SIGN;
+					} else
+						deg = "";
+					output.append(String.format("%.2f%s", f, deg));
+					if (str.hasMoreTokens())
+						output.append(", ");
+					index++;
+				}
+				if (str.hasMoreTokens())
+					output.append("...");
+				out = output.toString();
+			} catch (NumberFormatException e) {
+				// Trim down long data sets to size
+				if (value.length() >= 40)
+					out = value.substring(0, 40);
+				else
+					out = value;
+				out = Utils.htmlSpecialChars(out);
+			}
+		return out;
+	}
+	/**
+	 * Gets the GPS data representation from the packet.
+	 *
+	 * @param packet the packet to parse
+	 * @return the GPS data reformatted for display
+	 */
+	private static String getGPSData(USARPacket packet) {
+		int latDeg, latMin, longDeg, longMin;
+		String value, lat, lon; StringTokenizer str;
+		if (packet.getParam("Fix").equals("1"))
+			value = "<font color=\"#009900\">Fix";
+		else
+			value = "<font color=\"#990000\">Loss";
+		value += "</font> (" + Utils.htmlSpecialChars(packet.getParam("Satellites")) + ") ";
+		// GPS data: Latitude 39,20 Longitude -78,30
+		if (packet.getParam("Latitude") != null)
+			try {
+				// Parse latitude
+				str = new StringTokenizer(packet.getParam("Latitude"), ",");
+				latDeg = Integer.parseInt(str.nextToken().trim());
+				latMin = Integer.parseInt(str.nextToken().trim());
+				lat = str.nextToken().trim().toUpperCase();
+				// Parse longitude
+				str = new StringTokenizer(packet.getParam("Longitude"), ",");
+				longDeg = Integer.parseInt(str.nextToken().trim());
+				longMin = Integer.parseInt(str.nextToken().trim());
+				lon = str.nextToken().trim().toUpperCase();
+				// Output
+				value += String.format("%d%s %d' <i>%s</i>, %d%s %d' <i>%s</i>",
+					latDeg, DEG_SIGN, latMin, lat, longDeg, DEG_SIGN, longMin, lon);
+			} catch (NoSuchElementException ignore) {
+			} catch (NumberFormatException ignore) { }
+		return Utils.asHTML(value);
+	}
+	/**
+	 * Converts the odometer value to a sensible screen value.
+	 *
+	 * @param vec the string value
+	 * @param convert whether radian to degree conversion will be applied
+	 * @return the value reformatted for display
+	 */
+	private static String odoString(String vec, boolean convert) {
+		Vec3 vector = Utils.read3Vector(vec); String deg = "";
+		if (convert) {
+			// Convert only Z (heading)
+			vector = new Vec3(vector.getX(), vector.getY(),
+				(float)Math.toDegrees(vector.getZ()));
+			deg = DEG_SIGN;
+		}
+		return Utils.asHTML(String.format("<b>X</b> %.2f, <b>Y</b> %.2f, <b>T</b> %.2f%s",
+			vector.getX(),vector.getY(), vector.getZ(), deg));
+	}
+	/**
+	 * Converts the touch sensor value to a sensible screen value.
+	 *
+	 * @param touch the string value
+	 * @return the value reformatted for display
+	 */
+	private static String touchString(String touch) {
+		String out;
+		touch = touch.trim().toLowerCase();
+		if (touch.equals("1") || touch.equals("true"))
+			out = "<font color=\"990000\">Touch</font>";
+		else
+			out = "<font color=\"009900\">No Touch</font>";
+		return Utils.asHTML(out);
+	}
+
+	/**
+	 * Creates a new instance.
+	 *
+	 * @param ui the application managing this handler
+	 */
+	public SensorStatusHandler(IridiumUI ui) {
+		super(ui);
+	}
+	public String getPrefix() {
+		return "Sen_";
+	}
+	public boolean statusReceived(USARPacket packet) {
+		boolean keep = true, deg = ui.isInDegrees();
+		if (packet.getType().equals("SEN")) {
+			// Update time
+			String tm = packet.getParam("Time"), value, test, type, name;
+			if (tm != null)
+				try {
+					ui.updateTime(Float.parseFloat(tm));
+				} catch (NumberFormatException ignore) { }
+			// Update value, using typical names (this is for the simple sensors)
+			type = packet.getParam("Type");
+			if (type == null) type = "Sensor";
+			name = packet.getParam("Name");
+			if (name == null) name = type;
+			// Default bulk data
+			value = packet.getParam("");
+			if (value != null) value = Utils.asHTML(floatString(value, false));
+			// Accelerometer
+			test = packet.getParam("ProperAcceleration");
+			if (test != null) value = Utils.asHTML(floatString(test, false));
+			test = packet.getParam("Acceleration");
+			if (test != null) value = Utils.asHTML(floatString(test, false));
+			// Bumper
+			test = packet.getParam("Touch");
+			if (test != null) value = touchString(test);
+			// Encoder
+			test = packet.getParam("Tick");
+			if (test != null) value = Utils.htmlSpecialChars(test);
+			// GPS
+			test = packet.getParam("Fix");
+			if (test != null) value = getGPSData(packet);
+			// IR2Sensor, IRSensor, RangeSensor, RangeScanner, Sonar, and subclasses
+			test = packet.getParam("Range");
+			if (test != null) {
+				value = Utils.asHTML(floatString(test, false));
+				range = Double.parseDouble(floatString(test, false));
+				if(range < 3 && !push){
+					ui.goAround();
+				}
+			}
+			// Odometer
+			test = packet.getParam("Pose");
+			if (test != null) value = odoString(test, deg);
+			// Tachometer
+			test = packet.getParam("Pos");
+			if (test != null)
+				value = Utils.asHTML("<b>Rotation</b> (" + floatString(test, deg) +
+					"), <b>Velocity</b> (" + floatString(packet.getParam("Vel"), deg) + ")");
+			// GroundTruth, INS
+			test = packet.getParam("Location");
+			if (test != null){
+				String check[] = test.split(",");
+				String check2[] = packet.getParam("Orientation").split(",");
+				currentX = Double.parseDouble(check[0]);
+				currentY = Double.parseDouble(check[1]);
+				if(currentX < gx + .2 && currentX > gx - .2 && currentY < gy + .2 && currentY > gy - .2 && going){
+					p1 = true;
+					going = false;
+					ui.goTo(gx,gy,true, true, push);
+				}
+				direction = Double.parseDouble(check2[2]);
+				if(direction < gd + .08 && direction > gd - .08 && going && p1){
+					ui.goTo(gx,gy, true, false, push);
+					p1 = false;
+				}
+				
+				value = Utils.asHTML("<b>At</b> (" + color3Vector(test, false) +
+					"), <b>facing</b> (" + color3Vector(packet.getParam("Orientation"), deg) +
+					")");
+			}
+			// If still empty, single-keyed sensors can be handled here
+			if (value == null) {
+				List<String> keys = new ArrayList<String>(packet.getParams().keySet());
+				keys.remove("Time");
+				keys.remove("Type");
+				keys.remove("Name");
+				if (keys.size() == 1)
+					value = Utils.htmlSpecialChars(packet.getParam(keys.get(0)));
+			}
+			// Send whatever we got
+			if (value != null)
+				setInformation(type, name, value);
+			keep = false; // was set to false by S. Carlson, set to true to see all messages.
+		}
+		return keep;
+	}
+}
