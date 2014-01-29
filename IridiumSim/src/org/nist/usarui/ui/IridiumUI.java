@@ -9,7 +9,7 @@
 
 package org.nist.usarui.ui;
 
-import com.centralnexus.input.*;
+//import com.centralnexus.input.*;
 import org.nist.usarui.*;
 import org.nist.usarui.handlers.*;
 
@@ -134,7 +134,7 @@ public class IridiumUI implements IridiumListener {
 	private JTextField setParams;
 	private JComboBox setType;
 	private final IridiumConnector state;
-	private Joystick stick;
+	//private Joystick stick;
 	private JButton stopButton;
 	private JButton swapButton;
 	private JComponent topInfo;
@@ -172,7 +172,7 @@ public class IridiumUI implements IridiumListener {
 		infoPanels = new HashMap<String, InfoPanel>(24);
 		usarData = new LinkedList<USARPacket>();
 		this.state = state;
-		stick = null;
+		//stick = null;
 		loadHandlers();
 		loadImages();
 		setupUI();
@@ -235,12 +235,12 @@ public class IridiumUI implements IridiumListener {
 	/**
 	 * Disconnects and releases the joystick if connected.
 	 */
-	private void closeJoystick() {
-		if (stick != null) {
-			stick.removeJoystickListener(listener);
-			stick = null;
-		}
-	}
+	//private void closeJoystick() {
+	//	if (stick != null) {
+	//		stick.removeJoystickListener(listener);
+	//		stick = null;
+	//	}
+	//}
 	/**
 	 * Initializes the user interface when the program connects.
 	 */
@@ -319,7 +319,7 @@ public class IridiumUI implements IridiumListener {
 		final Frame frame = Utils.findParent(mainUI);
 		state.disconnect();
 		state.removeIridiumListener(this);
-		closeJoystick();
+		//closeJoystick();
 		if (frame != null)
 			frame.dispose();
 		closeAllDialogs();
@@ -327,6 +327,7 @@ public class IridiumUI implements IridiumListener {
 	/**
 	 * Feeds a DRIVE command if necessary to the robot if the joystick is connected and moved.
 	 */
+	/*
 	private void feedJoystickToRobot() {
 		float x, y, z, r;
 		if (stick != null) {
@@ -366,6 +367,7 @@ public class IridiumUI implements IridiumListener {
 			}
 		}
 	}
+	*/
 	/**
 	 * Returns the parameter string associated with GETGEO/GETCONF requests from the panel UI.
 	 *
@@ -447,6 +449,7 @@ public class IridiumUI implements IridiumListener {
 	/**
 	 * Grabs the joystick input if possible. Warns the user if their joystick may not work.
 	 */
+	/*
 	private void grabJoystick() {
 		try {
 			stick = Joystick.createInstance();
@@ -465,7 +468,7 @@ public class IridiumUI implements IridiumListener {
 			// Library load error
 			stick = null;
 		}
-	}
+	}*/
 	/**
 	 * Gets whether the UI is in degree mode.
 	 *
@@ -1829,7 +1832,7 @@ public class IridiumUI implements IridiumListener {
 		setupActUI();
 		setupGeoUI();
 		setupControlUI();
-		grabJoystick();
+		//grabJoystick();
 	}
 	/**
 	 * Shows or hides the "Advanced command" box.
@@ -1940,9 +1943,9 @@ public class IridiumUI implements IridiumListener {
 			// Stop robot!
 			sendInternalMessage("DRIVE {Left 0} {Right 0} {Speed 0} {AltitudeVelocity 0} " +
 				"{LinearVelocity 0} {LateralVelocity 0} {RotationalVelocity 0}");
-		else if (eventName.equals("feed"))
+		else if (eventName.equals("feed")){}
 			// Joystick
-			feedJoystickToRobot();
+			//feedJoystickToRobot();
 		else if (eventName.equals("initialize")){
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 1.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 3.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
@@ -2122,16 +2125,17 @@ public class IridiumUI implements IridiumListener {
 	/**
 	 * Handles UI events by calling Iridium actions.
 	 */
-	private class EventListener implements ActionListener, JoystickListener {
+	private class EventListener implements ActionListener {
 		public void actionPerformed(ActionEvent e) {
 			uiEvent(e.getActionCommand());
 		}
+		/*
 		public void joystickAxisChanged(Joystick joystick) {
 			feedJoystickToRobot();
 		}
 		public void joystickButtonChanged(Joystick joystick) {
 			feedJoystickToRobot();
-		}
+		}*/
 	}
 
 	/**
@@ -2308,6 +2312,10 @@ public class IridiumUI implements IridiumListener {
 		}
 		
 		
+	}
+	
+	public void setCheck(String line){
+		check.setText(line);
 	}
 	
 }

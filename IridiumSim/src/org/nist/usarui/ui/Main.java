@@ -10,9 +10,11 @@
 package org.nist.usarui.ui;
 
 import org.nist.usarui.*;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -25,6 +27,8 @@ public class Main {
 		Utils.setUI();
 		final Iridium program = new Iridium();
 		final IridiumUI ui = new IridiumUI(program);
+		program.setUI(ui);
+		boolean connecting = true;
 		final Image icon16 = Utils.loadImage("images/icon16.png").getImage();
 		final Image icon32 = Utils.loadImage("images/icon32.png").getImage();
 		final Image icon48 = Utils.loadImage("images/icon48.png").getImage();
@@ -46,5 +50,23 @@ public class Main {
 		mainFrame.setSize(700, 480);
 		Utils.centerWindow(mainFrame);
 		mainFrame.setVisible(true);
+		int port = 2000;
+		try {
+			program.connect("localhost");
+		} catch (IOException e2) {
+			ui.setCheck("could not connect to USARsim");
+		}
+		while(connecting){
+			try {
+				program.connect2(port);
+				connecting = false;
+			} catch (IOException e1) {
+				port++;
+				e1.printStackTrace();
+			}
+		}
 	}
+	
+	
 }
+

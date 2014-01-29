@@ -13,6 +13,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import org.nist.usarui.ui.IridiumUI;
+
 /**
  * The Iridium connection manager and format handler
  *
@@ -21,9 +23,13 @@ import java.util.*;
 public class Iridium implements IridiumConnector {
 	private final Properties config;
 	private BufferedReader in;
+	private BufferedReader in2;
 	private final List<IridiumListener> listeners;
 	private Writer out;
+	private Writer out2;
 	private Socket toUSAR;
+	private Socket toHUB;
+	private IridiumUI ui;
 
 	/**
 	 * Initializes the program.
@@ -32,6 +38,10 @@ public class Iridium implements IridiumConnector {
 		config = new Properties();
 		listeners = new ArrayList<IridiumListener>(5);
 		loadConfig();
+	}
+	
+	public void setUI(IridiumUI u){
+		ui = u;
 	}
 	public void addIridiumListener(IridiumListener listener) {
 		synchronized (listeners) {
@@ -79,6 +89,57 @@ public class Iridium implements IridiumConnector {
 			invokeEvent("disconnect");
 		}
 	}
+	
+	//--------------------------------------------------------------------------------------------------------------------
+	public synchronized void connect2(int port) throws IOException {
+		Socket temp; String host; String hostPort= "localhost";
+		disconnect2();
+		int index = hostPort.indexOf(':');
+		ServerSocket ss = new ServerSocket(port);
+		if (index > 0) {
+			host = hostPort.substring(0, index);
+			try {
+				port = Integer.parseInt(hostPort.substring(index + 1));
+			} catch (NumberFormatException e) {
+				throw new IOException("Host not found: " + hostPort);
+			}
+		} else
+			host = hostPort;
+		// Open socket
+		Thread t2 = new Thread(new Timeout(), "Timeout Checker");
+		t2.setPriority(Thread.MIN_PRIORITY);
+		t2.setDaemon(true);
+		//t2.start();
+		ui.setCheck("waiting for connection");
+		temp = ss.accept();
+		// Create socket input and output
+		toHUB = temp;
+		in2 = new BufferedReader(new InputStreamReader(toHUB.getInputStream()));
+		out2 = new BufferedWriter(new OutputStreamWriter(toHUB.getOutputStream()));
+		ui.setCheck("connection established");
+		//t2.stop();
+		// Start thread to handle socket messages
+		Thread t = new Thread(new USARThread2(), "USAR Messaging Thread 2");
+		t.setPriority(Thread.MIN_PRIORITY);
+		t.setDaemon(true);
+		t.start();
+		//invokeEvent("connected");
+	}
+	public synchronized void disconnect2() {
+		if (isConnected2()) {
+			ui.setCheck("disconnected");
+			try {
+				toHUB.close();
+				out2.close();
+				in2.close();
+			} catch (Exception ignore) { }
+			toHUB = null;
+			out2 = null;
+			in2 = null;
+			//invokeEvent("disconnect");
+		}
+	}
+	//-------------------------------------------------------------------------------------------------------------------
 	public Properties getConfig() {
 		return config;
 	}
@@ -111,6 +172,9 @@ public class Iridium implements IridiumConnector {
 	}
 	public synchronized boolean isConnected() {
 		return toUSAR != null && toUSAR.isConnected() && !toUSAR.isClosed();
+	}
+	public synchronized boolean isConnected2() {
+		return toHUB != null && toHUB.isConnected() && !toHUB.isClosed();
 	}
 	/**
 	 * Try to load user config; if that fails, load the one from the JAR
@@ -159,13 +223,76 @@ public class Iridium implements IridiumConnector {
 			String line;
 			// Listener thread
 			try {
-				while (isConnected() && (line = in.readLine()) != null)
+				while (isConnected() && (line = in.readLine()) != null){
 					if ((line = line.trim()).length() > 0)
 						invokePacket(new USARPacket(line, true));
+				}
 			} catch (IOException ignore) {
 			} finally {
 				disconnect();
+				
 			}
 		}
+	}
+	
+	private class USARThread2 implements Runnable {
+		public void run() {
+			String line;
+			// Listener thread
+			try {
+				while (isConnected2() && (line = in2.readLine()) != null){
+					line = line.trim();
+					processMessage(line);
+				}
+				ui.setCheck("nothing");
+			} catch (IOException ignore) {
+				ui.setCheck("whoops");
+			} finally {
+				ui.setCheck("whoops");
+				disconnect2();
+				
+			}
+		}
+
+		private void processMessage(String line){
+			String message[] = line.split("/");
+			switch(message[0]){
+			case "CONTROLLER":
+				try {
+					sendMessage("INIT {ClassName USARBotAPI.WorldController} {Location -1.2700, -0.9400, 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
+					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 1.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 3.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 2.0000, 2.0000, 1.0000} {Physics RigidBody}");
+					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+				}catch (IOException e){
+					ui.setCheck("error1 " + message[0]);
+				}
+				break;
+			case "CREATE":
+				//create a robot
+				//message at index 1 & 2 have x and y coords, respectively
+				break;
+			case "PUSH":
+				//tell robot to push a box have x and y coords, respectively
+				//message at index 1 & 2 
+				break;
+			default:
+				ui.setCheck("error");
+			}
+		}
+	}
+	
+	private class Timeout implements Runnable{
+		@Override
+		public void run() {
+			long time = System.currentTimeMillis();
+			long time2 = time;
+			while (time2 - time < 10000){
+				time2 = System.currentTimeMillis();
+			}
+			System.exit(0);
+		}
+		
 	}
 }
