@@ -269,16 +269,23 @@ public class Iridium implements IridiumConnector {
 					ui.setCheck("error1 " + message[0]);
 				}
 				break;
-			case "CREATE":
-				//create a robot
-				//message at index 1 & 2 have x and y coords, respectively
+			case "ROBOT":
+				try {
+					double x = Double.parseDouble(message[1]);
+					double y = Double.parseDouble(message[2]);
+					sendMessage("INIT {ClassName USARBot.BasicSkidRobot} {Location " + x + ", " + y + ", 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
+					out2.write("A"+ x + "/" + y + "\n");
+					out2.flush();
+				}catch(IOException e){
+					ui.setCheck("error2 " + message[0]);
+				}
 				break;
 			case "PUSH":
 				//tell robot to push a box have x and y coords, respectively
 				//message at index 1 & 2 
 				break;
 			default:
-				ui.setCheck("error");
+				ui.setCheck("error3");
 			}
 		}
 	}

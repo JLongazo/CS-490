@@ -24,7 +24,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="initialize">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -34,7 +34,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Initialize</string>
     </property>
    </widget>
    <widget class="QLabel" name="label1">
@@ -48,6 +48,32 @@
     </property>
     <property name="text">
      <string>NULL</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Autnomous">
+    <property name="geometry">
+     <rect>
+      <x>300</x>
+      <y>110</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Autonomous</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="check">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>150</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Check</string>
     </property>
    </widget>
   </widget>

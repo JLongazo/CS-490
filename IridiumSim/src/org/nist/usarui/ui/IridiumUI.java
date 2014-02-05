@@ -2239,6 +2239,7 @@ public class IridiumUI implements IridiumListener {
 			}else{
 				x -= 3;
 			}
+			setCheck("pushing");
 			goTo(x,y,false,false,true);
 		} else {
 			if(x < 0){
