@@ -5,10 +5,10 @@
 #include "robot.h"
 #include "taskallocator.h"
 #include <QMainWindow>
-#include<QtNetwork/QTcpSocket>
+#include<QtNetwork/QUdpSocket>
 
 void parseMessage(QString line, int robot);
-void readMessage(QTcpSocket &s, int r);
+void readMessage(QUdpSocket &s, int r);
 
 
 namespace Ui {
@@ -22,7 +22,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    void sendMessage(const QString &m, QTcpSocket &s);
+    void sendMessage(const QString &m, QUdpSocket &s);
 
 private slots:
 

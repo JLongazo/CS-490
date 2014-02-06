@@ -11,6 +11,7 @@ package org.nist.usarui;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.IllegalBlockingModeException;
 import java.util.*;
 
 import org.nist.usarui.ui.IridiumUI;
@@ -28,7 +29,7 @@ public class Iridium implements IridiumConnector {
 	private Writer out;
 	private Writer out2;
 	private Socket toUSAR;
-	private Socket toHUB;
+	private DatagramSocket toHUB;
 	private IridiumUI ui;
 
 	/**
@@ -95,7 +96,7 @@ public class Iridium implements IridiumConnector {
 		Socket temp; String host; String hostPort= "localhost";
 		disconnect2();
 		int index = hostPort.indexOf(':');
-		ServerSocket ss = new ServerSocket(port);
+		toHUB = new DatagramSocket(port);
 		if (index > 0) {
 			host = hostPort.substring(0, index);
 			try {
@@ -111,12 +112,12 @@ public class Iridium implements IridiumConnector {
 		t2.setDaemon(true);
 		//t2.start();
 		ui.setCheck("waiting for connection");
-		temp = ss.accept();
+		toHUB.connect(new InetSocketAddress("localhost",port));
 		// Create socket input and output
-		toHUB = temp;
-		in2 = new BufferedReader(new InputStreamReader(toHUB.getInputStream()));
-		out2 = new BufferedWriter(new OutputStreamWriter(toHUB.getOutputStream()));
-		ui.setCheck("connection established");
+		//toHUB = ss;
+		//in2 = new BufferedReader(new InputStreamReader(toHUB.getInputStream()));
+		//out2 = new BufferedWriter(new OutputStreamWriter(toHUB.getOutputStream()));
+		ui.setCheck("connection established " + Integer.toString(port));
 		//t2.stop();
 		// Start thread to handle socket messages
 		Thread t = new Thread(new USARThread2(), "USAR Messaging Thread 2");
@@ -237,24 +238,22 @@ public class Iridium implements IridiumConnector {
 	
 	private class USARThread2 implements Runnable {
 		public void run() {
-			String line;
 			// Listener thread
 			try {
-				while (isConnected2() && (line = in2.readLine()) != null){
-					line = line.trim();
-					processMessage(line);
-				}
-				ui.setCheck("nothing");
+					byte[] m = new byte[15];
+					DatagramPacket p = new DatagramPacket(m, m.length);
+					//ui.setCheck("waiting");
+					toHUB.receive(p);
+					//ui.setCheck("recieved");
+					processMessage(Arrays.toString(p.getData()));
+					//ui.setCheck("nothing");
 			} catch (IOException ignore) {
-				ui.setCheck("whoops");
-			} finally {
-				ui.setCheck("whoops");
-				disconnect2();
-				
+				ui.setCheck("");
 			}
 		}
 
 		private void processMessage(String line){
+			ui.setCheck(line);
 			String message[] = line.split("/");
 			switch(message[0]){
 			case "CONTROLLER":

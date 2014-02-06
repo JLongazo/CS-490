@@ -56,6 +56,13 @@ public class Main {
 		} catch (IOException e2) {
 			ui.setCheck("could not connect to USARsim");
 		}
+		try {
+			program.connect2(port);
+			connecting = false;
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		/*
 		while(connecting){
 			try {
 				program.connect2(port);
@@ -65,6 +72,7 @@ public class Main {
 				e1.printStackTrace();
 			}
 		}
+		*/
 	}
 	
 	
