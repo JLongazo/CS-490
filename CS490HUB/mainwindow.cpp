@@ -1,10 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
 //QTcpSocket socket2;
 //QTcpSocket socket3;
 //QTcpSocket socket4;
@@ -12,15 +9,7 @@
 //Robot r2;
 //Robot r3;
 //Robot robots[] = {r1,r2,r3};
-<<<<<<< HEAD
 
-quint16 port1 = 9001;
-
-TaskAllocator* ta;
-
-bool waiting = false;
-=======
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -28,20 +17,12 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     winnerB = 0;
     ui->setupUi(this);
-<<<<<<< HEAD
-    ta = new TaskAllocator();
-=======
 
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
     socket = new QUdpSocket(this);
     socket->bind(QHostAddress::LocalHost, port1, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
     qDebug() << "socket created";
     connect(socket, SIGNAL(readyRead()), this, SLOT(onMessageReceived()));
-<<<<<<< HEAD
-    connect(ta, SIGNAL(winnerFound(int)),this,SLOT(onWinnerFound(int)));
-    connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
-=======
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
+
 
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
 //    connect(&socket2,SIGNAL(readyRead()),this,SLOT(on_message_received2()));
@@ -68,28 +49,7 @@ MainWindow::~MainWindow()
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
     socket->writeDatagram(data, QHostAddress::Broadcast, port);
-<<<<<<< HEAD
-    if(socket->waitForBytesWritten()){}
-    return true;
-}
 
-bool MainWindow::onMessageReceived(){
-    QByteArray buf;
-    buf.resize(socket->pendingDatagramSize());
-
-    QHostAddress sender;
-    quint16 sender_port;
-
-    socket->readDatagram(buf.data(), buf.size(), &sender, &sender_port);
-
-    qDebug() << "Message from: " << sender.toString();
-    qDebug() << "Message port: " << sender_port;
-    qDebug() << "Message: " << buf;
-
-    parseMessage(buf);
-
-    return true;
-}
 
 //void MainWindow::sendMessage(const QString &m, QTcpSocket &s){
 //    QByteArray data;
@@ -102,38 +62,27 @@ bool MainWindow::onMessageReceived(){
 //    }
 //}
 
-void MainWindow::parseMessage(QByteArray buf){
-    const char *m;
-    m = buf.data();
-    switch(m[0]){
-    case 'B':{
-        QString line(buf);
-        line = line.right(line.length() - 1);
-        QStringList message = line.split("/");
-        ta->addBid(message[1].toInt()-1,message[2].toDouble());
-        //qDebug() << "Bid recieved: " + message[2];
-        break;
-    }
-    case 'N':{
-        QString line(buf);
-        line = line.right(line.length() - 1);
-        QStringList message = line.split("/");
-        ta->taskCompleted(message[1].toInt());
-        break;
-    }
-    case 'G':{
-        waiting = false;
-        if(ta->getBotCount() > 0){
-            ta->assignNextTask();
-        }
-    }
-    default:
-        if(waiting){
-            //onWinnerFound(winnerB);
-        }
-        break;
-    }
-}
+//void parseMessage(QString line, int robot){
+//    const char *m;
+//    QByteArray temp;
+//    temp.append(line);
+//    m = temp.data();
+//    switch(m[0]){
+//    case 'A':{
+//        line = line.right(line.length() - 1);
+//        qDebug() << line;
+//        QStringList message = line.split("/");
+//        double x = message[0].toDouble();
+//        double y = message[1].toDouble();
+//        robots[robot - 1].setX(x);
+//        robots[robot - 1].setY(y);
+//        qDebug() << "robot position set";
+//        break;
+//    }
+//    default:
+//        break;
+//    }
+//}
 
 //void readMessage(QTcpSocket &s, int r){
 //    if(s.canReadLine()){
@@ -142,27 +91,6 @@ void MainWindow::parseMessage(QByteArray buf){
 //        parseMessage(message,r);
 //    }
 //}
-=======
-
-    return true;
-}
-
-bool MainWindow::onMessageReceived(){
-    QByteArray buf;
-    buf.resize(socket->pendingDatagramSize());
-
-    QHostAddress sender;
-    quint16 sender_port;
-
-    socket->readDatagram(buf.data(), buf.size(), &sender, &sender_port);
-
-    qDebug() << "Message from: " << sender.toString();
-    qDebug() << "Message port: " << sender_port;
-    qDebug() << "Message: " << buf;
-
-    return true;
-}
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
 
 //void MainWindow::sendMessage(const QString &m, QTcpSocket &s){
 //    QByteArray data;
@@ -208,24 +136,7 @@ bool MainWindow::onMessageReceived(){
 
 void MainWindow::on_initialize_clicked()
 {
-<<<<<<< HEAD
-    QByteArray data,data2,data3,data4;
-    data.append("CONTROLLER/");
-    data2.append("ROBOT/1/6.5/-3.0/");
-    data3.append("ROBOT/2/2.5/-1.0/");
-    data4.append("ROBOT/3/-3.5/1.0/");
-    sendMessage(data, port1);
-    sendMessage(data2,port1);
-    sendMessage(data3, port1);
-    sendMessage(data4,port1);
-=======
-    QByteArray data;
-    data.append("CONTROLER/");
-    sendMessage(data, port1);
-//    sendMessage("ROBOT/-1.5/-2.5/",socket);
-//    sendMessage("ROBOT/-1.5/-1.0/",socket2);
-//    sendMessage("ROBOT/-1.5/0.5/",socket3);
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
+
 }
 
 void MainWindow::on_Autnomous_clicked()
@@ -234,29 +145,4 @@ void MainWindow::on_Autnomous_clicked()
     ta->readTasks("C:/Qt/CS490HUB/tasks.txt");
 }
 
-<<<<<<< HEAD
-void MainWindow::onTaskAssigned(QString message){
-    QByteArray m;
-    m.append(message);
-    sendMessage(m,9001);
-}
 
-void MainWindow::onWinnerFound(int winner){
-    qDebug() << winner;
-    QByteArray data;
-    data.append("WINNER/" + QString::number(winner) + "/");
-    sendMessage(data,port1);
-}
-=======
-//void MainWindow::on_message_received1(){
-//        readMessage(socket,1);
-//}
-
-//void MainWindow::on_message_received2(){
-//        readMessage(socket2,2);
-//}
-
-//void MainWindow::on_message_received3(){
-//        readMessage(socket3,3);
-//}
->>>>>>> 31d2a1794a658498f241f5f2a2f7846d212bac18
