@@ -11,8 +11,10 @@ package org.nist.usarui;
 
 import java.io.*;
 import java.net.*;
+import java.nio.channels.IllegalBlockingModeException;
 import java.util.*;
 
+import org.nist.usarui.handlers.SensorStatusHandler;
 import org.nist.usarui.ui.IridiumUI;
 
 /**
@@ -28,8 +30,14 @@ public class Iridium implements IridiumConnector {
 	private Writer out;
 	private Writer out2;
 	private Socket toUSAR;
-	private Socket toHUB;
+	private MulticastSocket toHUB;
 	private IridiumUI ui;
+	private int id;
+	public double tx;
+	public double ty;
+	private int taskNum;
+	private boolean working = false;
+	private boolean controller = false;
 
 	/**
 	 * Initializes the program.
@@ -95,7 +103,8 @@ public class Iridium implements IridiumConnector {
 		Socket temp; String host; String hostPort= "localhost";
 		disconnect2();
 		int index = hostPort.indexOf(':');
-		ServerSocket ss = new ServerSocket(port);
+		ui.setCheck("trying port");
+		toHUB = new MulticastSocket(port);
 		if (index > 0) {
 			host = hostPort.substring(0, index);
 			try {
@@ -106,17 +115,17 @@ public class Iridium implements IridiumConnector {
 		} else
 			host = hostPort;
 		// Open socket
-		Thread t2 = new Thread(new Timeout(), "Timeout Checker");
-		t2.setPriority(Thread.MIN_PRIORITY);
-		t2.setDaemon(true);
+		//Thread t2 = new Thread(new Timeout(), "Timeout Checker");
+		//t2.setPriority(Thread.MIN_PRIORITY);
+		//t2.setDaemon(true);
 		//t2.start();
 		ui.setCheck("waiting for connection");
-		temp = ss.accept();
+		toHUB.connect(new InetSocketAddress("localhost",port));
 		// Create socket input and output
-		toHUB = temp;
-		in2 = new BufferedReader(new InputStreamReader(toHUB.getInputStream()));
-		out2 = new BufferedWriter(new OutputStreamWriter(toHUB.getOutputStream()));
-		ui.setCheck("connection established");
+		//toHUB = ss;
+		//in2 = new BufferedReader(new InputStreamReader(toHUB.getInputStream()));
+		//out2 = new BufferedWriter(new OutputStreamWriter(toHUB.getOutputStream()));
+		ui.setCheck("connection established " + Integer.toString(port));
 		//t2.stop();
 		// Start thread to handle socket messages
 		Thread t = new Thread(new USARThread2(), "USAR Messaging Thread 2");
@@ -130,12 +139,8 @@ public class Iridium implements IridiumConnector {
 			ui.setCheck("disconnected");
 			try {
 				toHUB.close();
-				out2.close();
-				in2.close();
 			} catch (Exception ignore) { }
 			toHUB = null;
-			out2 = null;
-			in2 = null;
 			//invokeEvent("disconnect");
 		}
 	}
@@ -214,6 +219,17 @@ public class Iridium implements IridiumConnector {
 		out.write("\r\n");
 		out.flush();
 	}
+	
+	public void sendHubMessage(String message){
+		byte[] content = message.getBytes();
+		DatagramPacket p = new DatagramPacket(content, content.length);
+		try {
+			toHUB.send(p);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * Runs the thread which checks the socket for updates.
@@ -237,55 +253,79 @@ public class Iridium implements IridiumConnector {
 	
 	private class USARThread2 implements Runnable {
 		public void run() {
-			String line;
 			// Listener thread
 			try {
-				while (isConnected2() && (line = in2.readLine()) != null){
-					line = line.trim();
-					processMessage(line);
+				while(isConnected2()){
+					byte[] m = new byte[15];
+					DatagramPacket p = new DatagramPacket(m, m.length);
+					//ui.setCheck("waiting");
+					toHUB.receive(p);
+					ui.setCheck("recieved");
+					processMessage(new String(p.getData(), "UTF-8"));
+					//ui.setCheck("nothing");
 				}
-				ui.setCheck("nothing");
 			} catch (IOException ignore) {
-				ui.setCheck("whoops");
-			} finally {
-				ui.setCheck("whoops");
-				disconnect2();
-				
+				ui.setCheck("");
 			}
 		}
 
 		private void processMessage(String line){
 			String message[] = line.split("/");
+			//ui.setCheck(line);
 			switch(message[0]){
 			case "CONTROLLER":
 				try {
-					sendMessage("INIT {ClassName USARBotAPI.WorldController} {Location -1.2700, -0.9400, 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
-					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 1.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 3.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 2.0000, 2.0000, 1.0000} {Physics RigidBody}");
-					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-					sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+					if(id == 4){
+						ui.setCheck(line);
+						controller = true;
+						sendMessage("INIT {ClassName USARBotAPI.WorldController} {Location -1.2700, -0.9400, 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 4.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 5.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+					}
 				}catch (IOException e){
 					ui.setCheck("error1 " + message[0]);
 				}
 				break;
 			case "ROBOT":
 				try {
-					double x = Double.parseDouble(message[1]);
-					double y = Double.parseDouble(message[2]);
-					sendMessage("INIT {ClassName USARBot.BasicSkidRobot} {Location " + x + ", " + y + ", 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
-					out2.write("A"+ x + "/" + y + "\n");
-					out2.flush();
+					
+					if(id == Integer.parseInt(message[1]) && isConnected()){
+						ui.setCheck(message[1]);
+						double x = Double.parseDouble(message[2]);
+						double y = Double.parseDouble(message[3]);
+						sendMessage("INIT {ClassName USARBot.BasicSkidRobot} {Location " + x + ", " + y + ", 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
+					}
 				}catch(IOException e){
 					ui.setCheck("error2 " + message[0]);
 				}
 				break;
-			case "PUSH":
-				//tell robot to push a box have x and y coords, respectively
-				//message at index 1 & 2 
+			case "TASK":
+				ui.setCheck(line);
+				if(!working && !controller){
+					tx = Double.parseDouble(message[2]);
+					ty = Double.parseDouble(message[3]);
+					taskNum = Integer.parseInt(message[1]);
+					double bid = ui.getBid(tx, ty);
+					sendHubMessage("B/"+ Integer.toString(id) + "/" + Double.toString(bid) + "/");
+				}
+				break;
+			case "WINNER":
+				ui.setCheck(line);
+				if(id == Integer.parseInt(message[1]) && isConnected()){
+					ui.push(tx, ty, false);
+					working = true;
+					sendHubMessage("G/");
+					
+				} else {
+					tx = 0;
+					ty = 0;
+				}
 				break;
 			default:
-				ui.setCheck("error3");
+				//ui.setCheck("error3");
 			}
 		}
 	}
@@ -301,5 +341,21 @@ public class Iridium implements IridiumConnector {
 			System.exit(0);
 		}
 		
+	}
+	
+	public void setId(int i){
+		id = i;
+	}
+	
+	public String getId(){
+		return Integer.toString(id);
+	}
+	
+	public String getTN(){
+		return Integer.toString(taskNum);
+	}
+	
+	public void notWorking(){
+		working = false;
 	}
 }

@@ -1947,11 +1947,14 @@ public class IridiumUI implements IridiumListener {
 			// Joystick
 			//feedJoystickToRobot();
 		else if (eventName.equals("initialize")){
+			/*
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 1.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 3.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 2.0000, 2.0000, 1.0000} {Physics RigidBody}");
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 			sendInternalMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+			*/
+			state.sendHubMessage("hello");
 		}	
 		else if(eventName.equals("test")){
 			push(3,3, false);
@@ -2234,18 +2237,19 @@ public class IridiumUI implements IridiumListener {
 	
 	public void push(double x, double y, boolean p2){
 		if(!p2){
-			if(x < 0){
-				x += 3;
+			setCheck("pushing " + x + " " + y);
+			if(y < 0){
+				y += 3;
 			}else{
-				x -= 3;
+				y -= 3;
 			}
-			setCheck("pushing");
+			
 			goTo(x,y,false,false,true);
 		} else {
-			if(x < 0){
-				x = -9;
+			if(y < 0){
+				y = -7;
 			}else{
-				x = 9;
+				y = 7;
 			}
 			goTo(x,y,false,false,false);
 		}
@@ -2254,6 +2258,7 @@ public class IridiumUI implements IridiumListener {
 	public int count = 0;
 	
 	public void goAround(){
+		setCheck("obstacle detected");
 		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
 		sendMessage("DRIVE {Left 0} {Right 0}");
 		sendMessage("DRIVE {Left .3} {Right -.3}");
@@ -2275,12 +2280,17 @@ public class IridiumUI implements IridiumListener {
 	
 	public boolean goTo(double x, double y, boolean c1, boolean complete, boolean push){
 		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		setCheck("going to " + x + " " + y);
 		if(complete){
 			sendMessage("DRIVE {Left 0} {Right 0}");
+			
 			if (push){
 				push(x,y,true);
 				data.push = false;
 				check.setText(Integer.toString(count++));
+			} else {
+				state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
+				state.notWorking();
 			}
 			return true;
 		}
@@ -2293,7 +2303,7 @@ public class IridiumUI implements IridiumListener {
 			if(data.gd < 0){
 				data.gd += (2*Math.PI);
 			}
-			//check.setText(data.range);
+			check.setText(Double.toString(data.gd));
 			if(data.gd + .08 < data.direction){
 				sendMessage("DRIVE {Left -.3} {Right .3}");
 			}else if (data.gd - .08 > data.direction){
@@ -2317,6 +2327,10 @@ public class IridiumUI implements IridiumListener {
 	
 	public void setCheck(String line){
 		check.setText(line);
+	}
+	public double getBid(double x, double y) {
+		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(6);
+		return Math.sqrt(Math.pow(x + sensor.currentX, 2) + Math.pow(y + sensor.currentY, 2));
 	}
 	
 }

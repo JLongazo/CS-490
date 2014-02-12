@@ -26,9 +26,9 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 	 */
 	public static final int MAX_ENTRIES = 10;
 	
-	public double currentX;
+	public double currentX = 0;
 	public double gx;
-	public double currentY;
+	public double currentY = 0;
 	public double gy;
 	public double direction;
 	public double gd;
@@ -138,7 +138,7 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 	private static String odoString(String vec, boolean convert) {
 		Vec3 vector = Utils.read3Vector(vec); String deg = "";
 		if (convert) {
-			// Convert only Z (heading)
+			// Convert only Z (heading)for(int i = 0; i < MAX_BIDS; i++){
 			vector = new Vec3(vector.getX(), vector.getY(),
 				(float)Math.toDegrees(vector.getZ()));
 			deg = DEG_SIGN;
@@ -209,7 +209,7 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 			if (test != null) {
 				value = Utils.asHTML(floatString(test, false));
 				range = Double.parseDouble(floatString(test, false));
-				if(range < 3 && !push){
+				if(range < 3 && !push && going){
 					ui.goAround();
 				}
 			}
@@ -228,13 +228,13 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				String check2[] = packet.getParam("Orientation").split(",");
 				currentX = Double.parseDouble(check[0]);
 				currentY = Double.parseDouble(check[1]);
-				if(currentX < gx + .2 && currentX > gx - .2 && currentY < gy + .2 && currentY > gy - .2 && going){
+				if(currentX < gx + .1 && currentX > gx - .1 && currentY < gy + .1 && currentY > gy - .1 && going){
 					p1 = true;
 					going = false;
 					ui.goTo(gx,gy,true, true, push);
 				}
 				direction = Double.parseDouble(check2[2]);
-				if(direction < gd + .08 && direction > gd - .08 && going && p1){
+				if(direction < gd + .03 && direction > gd - .03 && going && p1){
 					ui.goTo(gx,gy, true, false, push);
 					p1 = false;
 				}

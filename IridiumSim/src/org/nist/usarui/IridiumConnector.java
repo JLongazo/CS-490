@@ -66,4 +66,12 @@ public interface IridiumConnector {
 	 * @throws IOException if an I/O error occurs
 	 */
 	public void sendMessage(String message) throws IOException;
+	
+	public void sendHubMessage(String message);
+	
+	public String getId();
+	
+	public String getTN();
+	
+	public void notWorking();
 }

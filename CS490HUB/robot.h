@@ -2,14 +2,14 @@
 #define ROBOT_H
 
 #include"objective.h"
-#include<QtNetwork/QTcpSocket>
+//#include<QtNetwork/QTcpSocket>
 
 
 class Robot
 {
 public:
     Robot();
-    QTcpSocket *socket;
+   // QTcpSocket *socket;
     Objective *obj;
     double getX(){return x;}
     double getY(){return y;}
