@@ -6,9 +6,11 @@
 //#include "taskallocator.h"
 //#include <QtNetwork/QTcpSocket>
 #include <QMainWindow>
+#include <QThread>
 #include <QtNetwork/QUdpSocket>
+#include "taskallocator.h"
 
-//void parseMessage(QString line, int robot);
+
 //void readMessage(QTcpSocket &s, int r);
 
 
@@ -26,18 +28,24 @@ public:
 
     //sendMessage        data      port
     bool sendMessage(QByteArray&, quint16);
+    void parseMessage(QByteArray buf);
+
+public slots:
+     void onWinnerFound(int winner);
 
 private slots:
 
     void on_initialize_clicked();
     bool onMessageReceived();
     void on_Autnomous_clicked();
+    void onTaskAssigned(QString message);
+
 
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
+    int winnerB;
 
-    quint16  port1 = 9001;
 //    int port2 = 2001;
 //    int port3 = 2002;
 //    int port4 = 2003;

@@ -4,7 +4,7 @@
 class Objective
 {
 public:
-    Objective(double x1, double y1){x = x1;y = y1;}
+    Objective(double x1 = 0, double y1 = 0);
     void setCompleted(){completed = true;}
     bool getCompleted(){return completed;}
     bool getStatus(){return inProgress;}
