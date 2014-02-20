@@ -10,7 +10,6 @@
 #include <QtNetwork/QUdpSocket>
 #include "taskallocator.h"
 
-
 //void readMessage(QTcpSocket &s, int r);
 
 
