@@ -209,8 +209,8 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 			if (test != null) {
 				value = Utils.asHTML(floatString(test, false));
 				range = Double.parseDouble(floatString(test, false));
-				if(range < 3 && !push && going){
-					ui.goAround();
+				if(range < 2.5 && push && going){
+					//ui.goAround();
 				}
 			}
 			// Odometer
@@ -228,13 +228,17 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				String check2[] = packet.getParam("Orientation").split(",");
 				currentX = Double.parseDouble(check[0]);
 				currentY = Double.parseDouble(check[1]);
-				if(currentX < gx + .1 && currentX > gx - .1 && currentY < gy + .1 && currentY > gy - .1 && going){
+				if(currentX < (gx + .2) && currentX > (gx - .2) && going && push){
+					p1 = true;
+					going = false;
+					ui.goTo(gx,gy,true, true, push);
+				}if(currentY < (gy + .2) && currentY > (gy - .2) && going && !push){
 					p1 = true;
 					going = false;
 					ui.goTo(gx,gy,true, true, push);
 				}
 				direction = Double.parseDouble(check2[2]);
-				if(direction < gd + .03 && direction > gd - .03 && going && p1){
+				if(direction < (gd + .03) && direction > (gd - .03) && going && p1){
 					ui.goTo(gx,gy, true, false, push);
 					p1 = false;
 				}

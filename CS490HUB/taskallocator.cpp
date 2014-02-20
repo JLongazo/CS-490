@@ -55,7 +55,9 @@ void TaskAllocator::addBid(int index, double bid){
 void TaskAllocator::taskCompleted(int index){
     tasks[index].setCompleted();
     activeBots++;
-    assignNextTask();
+    if(currentTask < taskCount){
+        assignNextTask();
+    }
 }
 
 void TaskAllocator::chooseWinner(){

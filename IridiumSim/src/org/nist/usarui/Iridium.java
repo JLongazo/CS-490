@@ -260,7 +260,7 @@ public class Iridium implements IridiumConnector {
 					DatagramPacket p = new DatagramPacket(m, m.length);
 					//ui.setCheck("waiting");
 					toHUB.receive(p);
-					ui.setCheck("recieved");
+					//ui.setCheck("recieved");
 					processMessage(new String(p.getData(), "UTF-8"));
 					//ui.setCheck("nothing");
 				}
@@ -303,7 +303,7 @@ public class Iridium implements IridiumConnector {
 				}
 				break;
 			case "TASK":
-				ui.setCheck(line);
+				//ui.setCheck(line);
 				if(!working && !controller){
 					tx = Double.parseDouble(message[2]);
 					ty = Double.parseDouble(message[3]);
@@ -313,7 +313,7 @@ public class Iridium implements IridiumConnector {
 				}
 				break;
 			case "WINNER":
-				ui.setCheck(line);
+				//ui.setCheck(line);
 				if(id == Integer.parseInt(message[1]) && isConnected()){
 					ui.push(tx, ty, false);
 					working = true;

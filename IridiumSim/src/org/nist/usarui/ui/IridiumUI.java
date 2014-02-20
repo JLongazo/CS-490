@@ -2261,16 +2261,16 @@ public class IridiumUI implements IridiumListener {
 		setCheck("obstacle detected");
 		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
 		sendMessage("DRIVE {Left 0} {Right 0}");
-		sendMessage("DRIVE {Left .3} {Right -.3}");
+		sendMessage("DRIVE {Left .5} {Right -.5}");
 		try {
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		sendMessage("DRIVE {Left .5} {Right .5}");
+		sendMessage("DRIVE {Left .3} {Right .3}");
 		try {
-			Thread.sleep(3000);
+			Thread.sleep(3500);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -2285,10 +2285,19 @@ public class IridiumUI implements IridiumListener {
 			sendMessage("DRIVE {Left 0} {Right 0}");
 			
 			if (push){
-				push(x,y,true);
 				data.push = false;
+				
+				push(data.currentX,data.currentY,true);
 				check.setText(Integer.toString(count++));
 			} else {
+				sendMessage("Drive {Left -1} {Right -1}");
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				sendMessage("DRIVE {Left 0} {Right 0}");
 				state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
 				state.notWorking();
 			}
@@ -2300,16 +2309,23 @@ public class IridiumUI implements IridiumListener {
 			data.gy = y;
 			data.push = push;
 			data.gd = Math.atan2(data.currentY - y, data.currentX - x);	
+			
 			if(data.gd < 0){
 				data.gd += (2*Math.PI);
 			}
-			check.setText(Double.toString(data.gd));
-			if(data.gd + .08 < data.direction){
-				sendMessage("DRIVE {Left -.3} {Right .3}");
-			}else if (data.gd - .08 > data.direction){
-				sendMessage("DRIVE {Left .3} {Right -.3}");
-			}else{
-				sendMessage("DRIVE {Left .5} {Right .5}");
+			check.setText(Double.toString(data.direction));
+			if(data.gd > data.direction){
+				if(data.gd - data.direction < Math.PI){
+					sendMessage("DRIVE {Left .2} {Right -.2}");
+				} else {
+					sendMessage("DRIVE {Left -.2} {Right-.2}");
+				}
+			} else {
+				if(data.direction - data.gd < Math.PI){
+					sendMessage("DRIVE {Left -.2} {Right .2}");
+				} else {
+					sendMessage("DRIVE {Left .2} {Right -.2}");
+				}
 			}
 			return false;
 		}
@@ -2318,7 +2334,7 @@ public class IridiumUI implements IridiumListener {
 			data.gy = y;
 			data.push = push;
 			data.going = true;
-			sendMessage("DRIVE {Left .5} {Right .5}");
+			sendMessage("DRIVE {Left .3} {Right .3}");
 			return false;
 		}
 		
