@@ -10,7 +10,7 @@
 #include <QtNetwork/QUdpSocket>
 #include "taskallocator.h"
 
-#include "keypressfilter.h"
+#include <QKeyEvent>
 //void readMessage(QTcpSocket &s, int r);
 
 
@@ -32,6 +32,7 @@ public:
 
     virtual void keyPressEvent(QKeyEvent *);
     virtual void keyReleaseEvent(QKeyEvent*);
+    void updateMotion();
 
 public slots:
      void onWinnerFound(int winner);
@@ -48,7 +49,8 @@ private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
     int winnerB;
-    //KeyPressFilter* kpf;
+
+    bool aPressed, wPressed, sPressed, dPressed;
 
 //    int port2 = 2001;
 //    int port3 = 2002;

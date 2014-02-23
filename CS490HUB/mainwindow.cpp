@@ -33,8 +33,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //Make the text area non-editable so we can read key events
     ui->textEdit->setReadOnly(true);
 
-    //Install a event filter on the MainWindow
-    //this->installEventFilter(kpf);
+    //Initalize key press trackers to false
+    aPressed = wPressed = sPressed = dPressed = false;
 
 
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
@@ -61,11 +61,63 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::keyPressEvent(QKeyEvent* event){
-    qDebug() << "Hello";
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = true;
+            break;
+        case Qt::Key_A:
+            aPressed = true;
+            break;
+        case Qt::Key_S:
+            sPressed = true;
+            break;
+        case Qt::Key_D:
+            dPressed = true;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event){
-    qDebug() << "Goodbye";
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = false;
+            break;
+        case Qt::Key_A:
+            aPressed = false;
+            break;
+        case Qt::Key_S:
+            sPressed = false;
+            break;
+        case Qt::Key_D:
+            dPressed = false;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
+}
+
+void MainWindow::updateMotion(){
+    //Robot ID 1 for now
+    QByteArray buf;
+    double right = 0, left = 0;
+
+    if(wPressed){right += .25; left += .25;}
+    if(aPressed){right += .2; left -= .2;}
+    if(sPressed){right -= .25; left -= .25;}
+    if(dPressed){right -= .2; left += .2;}
+
+    QString msg = "DRIVE/1/" + QString::number(right) + "/" + QString::number(left) + "/";
+
+    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+
+    buf.append(msg);
+    sendMessage(buf, port1);
 }
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
