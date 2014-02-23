@@ -324,6 +324,20 @@ public class Iridium implements IridiumConnector {
 					ty = 0;
 				}
 				break;
+			case "DRIVE":
+				if(id == Integer.parseInt(message[1]) && isConnected()){
+					//Assuming skid
+					ui.setCheck(message[1]);
+					double left = Double.parseDouble(message[2]);
+					double right = Double.parseDouble(message[2]);
+					try {
+						sendMessage("DRIVE {Left " + left + "} {Right " + right + "} {Normalized true}");
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						ui.setCheck("Error2 " + message[0]);
+					}
+				}
+				break;
 			default:
 				//ui.setCheck("error3");
 			}

@@ -48,6 +48,7 @@ public class Main {
 		mainFrame.setResizable(true);
 		mainFrame.getContentPane().add(ui.getRoot(), BorderLayout.CENTER);
 		mainFrame.setSize(700, 480);
+		mainFrame.setTitle("Iridium " + args[0]);
 		Utils.centerWindow(mainFrame);
 		mainFrame.setVisible(true);
 		int port = 9001;
