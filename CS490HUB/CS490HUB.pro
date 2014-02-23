@@ -16,12 +16,14 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     objective.cpp \
     taskallocator.cpp \
-    robot.cpp
+    robot.cpp \
+    keypressfilter.cpp
 
 HEADERS  += mainwindow.h \
     objective.h \
     taskallocator.h \
     robot.h \
-    readerthread.h
+    readerthread.h \
+    keypressfilter.h
 
 FORMS    += mainwindow.ui

@@ -30,6 +30,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ta, SIGNAL(winnerFound(int)),this,SLOT(onWinnerFound(int)));
     connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
 
+    //Make the text area non-editable so we can read key events
+    ui->textEdit->setReadOnly(true);
+
+    //Install a event filter on the MainWindow
+    //this->installEventFilter(kpf);
+
+
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
 //    connect(&socket2,SIGNAL(readyRead()),this,SLOT(on_message_received2()));
 //    connect(&socket3,SIGNAL(readyRead()),this,SLOT(on_message_received3()));
@@ -51,6 +58,14 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* event){
+    qDebug() << "Hello";
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* event){
+    qDebug() << "Goodbye";
 }
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
