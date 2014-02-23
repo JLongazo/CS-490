@@ -331,7 +331,8 @@ public class Iridium implements IridiumConnector {
 					double left = Double.parseDouble(message[2]);
 					double right = Double.parseDouble(message[2]);
 					try {
-						sendMessage("DRIVE {Left " + left + "} {Right " + right + "} {Normalized true}");
+						sendMessage("DRIVE {Left " + left + "} {Right " + right + "}");
+						
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						ui.setCheck("Error2 " + message[0]);
