@@ -107,10 +107,10 @@ void MainWindow::updateMotion(){
     QByteArray buf;
     double right = 0, left = 0;
 
-    if(wPressed){right += .4; left += .4;}
-    if(aPressed){right += .2; left -= .2;}
-    if(sPressed){right -= .4; left -= .4;}
-    if(dPressed){right -= .2; left += .2;}
+    if(wPressed){right += 0.4; left += 0.4;}
+    if(aPressed){right -= 0.3; left += 0.3;}
+    if(sPressed){right -= 0.4; left -= 0.4;}
+    if(dPressed){right += 0.3; left -= 0.3;}
 
     QString msg = "DRIVE/1/" + QString::number(right) + "/" + QString::number(left) + "/";
 
