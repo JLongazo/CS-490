@@ -18,6 +18,7 @@ import java.util.*;
  * @author Stephen Carlson (NIST)
  */
 public interface IridiumConnector {
+	
 	/**
 	 * Registers an IridiumListener for events.
 	 *

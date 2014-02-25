@@ -27,16 +27,18 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 	public static final int MAX_ENTRIES = 10;
 	
 	public double currentX = 0;
-	public double gx;
+	public double gx = 0;
+	public double tx = 0;
 	public double currentY = 0;
-	public double gy;
+	public double gy = 0;
+	public double ty = 0;
 	public double direction;
 	public double gd;
 	public boolean going;
 	public boolean push;
 	public double range;
 	private boolean p1 = true;
-
+	private boolean right = false;
 	/**
 	 * Returns the 3-vector with colors.
 	 *
@@ -206,11 +208,34 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 			if (test != null) value = getGPSData(packet);
 			// IR2Sensor, IRSensor, RangeSensor, RangeScanner, Sonar, and subclasses
 			test = packet.getParam("Range");
+			
+			boolean avoiding = false;
+			double dist = Math.sqrt(Math.pow(currentX-gx, 2)+Math.pow(currentY - gy,2));
 			if (test != null) {
-				value = Utils.asHTML(floatString(test, false));
-				range = Double.parseDouble(floatString(test, false));
-				if(range < 2.5 && push && going){
-					//ui.goAround();
+				String rf[] = test.split(",");
+				//value = Utils.asHTML(floatString(test, false));
+				double min = 8;
+				for(int i = 0; i < rf.length; i++){
+					double check = Double.parseDouble(rf[i]);
+					if(check < min){
+						min = check;
+					}
+				}
+				range = min;
+				ui.setCheck(Double.toString(range));
+				boolean close = false;
+				if( dist < 1){
+					close = true;
+				}
+				if(range < 2 && push && going && !close){
+					avoiding = true;
+					ui.sendMessage("DRIVE {Left 1} {Right -1}");
+					/*try {
+						Thread.sleep(300);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}*/
 				}
 			}
 			// Odometer
@@ -228,21 +253,76 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				String check2[] = packet.getParam("Orientation").split(",");
 				currentX = Double.parseDouble(check[0]);
 				currentY = Double.parseDouble(check[1]);
-				if(currentX < (gx + .2) && currentX > (gx - .2) && going && push){
-					p1 = true;
-					going = false;
-					ui.goTo(gx,gy,true, true, push);
-				}if(currentY < (gy + .2) && currentY > (gy - .2) && going && !push){
-					p1 = true;
-					going = false;
-					ui.goTo(gx,gy,true, true, push);
+				gd = Math.atan2(currentY - gy, currentX - gx);	
+				if(gd < 0){
+					gd += (2*Math.PI);
 				}
+				right = false;
+				double rSpeed = .3;
+				double lSpeed = .3;
 				direction = Double.parseDouble(check2[2]);
-				if(direction < (gd + .03) && direction > (gd - .03) && going && p1){
-					ui.goTo(gx,gy, true, false, push);
-					p1 = false;
+				if(gd > direction){
+					if(gd - direction < Math.PI){
+						right = true;
+					} 
+				} else {
+					if(direction - gd > Math.PI){
+						right = true;
+					}
 				}
-				
+				if(going && !avoiding && !ui.stopped){
+					if(push){
+						if(Math.abs(direction - gd) > (Math.PI/2)){
+							if(right){
+								rSpeed-=.4;
+							}else{
+								lSpeed-=.4;
+							}
+						}else if(Math.abs(direction - gd) > (Math.sqrt(2)/2)){
+							if(right){
+								rSpeed-=.3;
+							}else{
+								lSpeed-=.3;
+							}
+						}else if(Math.abs(direction - gd) > 0){
+							if(right){
+								rSpeed-=.1;
+							}else{
+								lSpeed-=.1;
+							}
+						}
+					}else{
+						if(!(direction + .03 > gd && direction - .03 < gd)){
+							if(right){
+								lSpeed = .2;
+								rSpeed = -.2;
+							}else{
+								lSpeed = -.2;
+								rSpeed = .2;
+							}
+						}
+					}
+					if(currentX + .3 > gx && currentX - .3 < gx && currentY + .3 > gy && currentY - .3 < gy){
+						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
+						if(push){
+							ui.push(gx, ty, true);
+							push = false;
+							ui.setCheck("pushing");
+						}else{
+							going = false;
+							ui.complete();
+						}
+					}else{
+						if(dist > 5 && push){
+							lSpeed *= 1.5;
+							rSpeed *= 1.5;
+						}else if(dist < 1 && push){
+							lSpeed*=.7;
+							rSpeed*=.7;
+						}
+						ui.sendMessage("DRIVE {Left " + Double.toString(lSpeed) + "} {Right " + Double.toString(rSpeed) +"}");
+					}
+				}
 				value = Utils.asHTML("<b>At</b> (" + color3Vector(test, false) +
 					"), <b>facing</b> (" + color3Vector(packet.getParam("Orientation"), deg) +
 					")");

@@ -38,6 +38,7 @@ public class Iridium implements IridiumConnector {
 	private int taskNum;
 	private boolean working = false;
 	private boolean controller = false;
+	
 
 	/**
 	 * Initializes the program.
@@ -324,20 +325,15 @@ public class Iridium implements IridiumConnector {
 					ty = 0;
 				}
 				break;
-			case "DRIVE":
+			case "ESTOP":
 				if(id == Integer.parseInt(message[1]) && isConnected()){
-					//Assuming skid
-					ui.setCheck(message[1]);
-					double left = Double.parseDouble(message[3]);
-					double right = Double.parseDouble(message[2]);
-					try {
-						sendMessage(String.format("DRIVE {Left %.2f} {Right %.2f}", left, right));
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						ui.setCheck("Error2 " + message[0]);
+					if(ui.stopped){
+						ui.stopped = false;
+					}else{
+						ui.stopped = true;
+						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
 					}
-				}
-				break;
+				} 
 			default:
 				//ui.setCheck("error3");
 			}

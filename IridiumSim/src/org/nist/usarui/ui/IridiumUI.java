@@ -155,6 +155,8 @@ public class IridiumUI implements IridiumListener {
 	private String imageName;
 	private String emptyString;
 	private JLabel check;
+	
+	public boolean stopped = false;
 
 	//------------------------------
 	
@@ -2236,109 +2238,41 @@ public class IridiumUI implements IridiumListener {
 	//------------------------------------------------------------------------------------------------
 	
 	public void push(double x, double y, boolean p2){
+		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
 		if(!p2){
 			setCheck("pushing " + x + " " + y);
+			data.tx = x;
+			data.ty = y;
 			if(y < 0){
 				y += 3;
 			}else{
 				y -= 3;
 			}
-			
-			goTo(x,y,false,false,true);
+			data.push = true;
+			goTo(x,y);
 		} else {
 			if(y < 0){
 				y = -7;
 			}else{
 				y = 7;
 			}
-			goTo(x,y,false,false,false);
+			goTo(x,y);
 		}
 	}
 	
 	public int count = 0;
 	
-	public void goAround(){
-		setCheck("obstacle detected");
-		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
-		sendMessage("DRIVE {Left 0} {Right 0}");
-		sendMessage("DRIVE {Left .5} {Right -.5}");
-		try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		sendMessage("DRIVE {Left .3} {Right .3}");
-		try {
-			Thread.sleep(3500);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		goTo(data.gx,data.gy,false,false,true);
-	}
 	
-	public boolean goTo(double x, double y, boolean c1, boolean complete, boolean push){
+	public void goTo(double x, double y){
 		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
-		setCheck("going to " + x + " " + y);
-		if(complete){
-			sendMessage("DRIVE {Left 0} {Right 0}");
-			
-			if (push){
-				data.push = false;
-				
-				push(data.currentX,data.currentY,true);
-				check.setText(Integer.toString(count++));
-			} else {
-				sendMessage("Drive {Left -1} {Right -1}");
-				try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				sendMessage("DRIVE {Left 0} {Right 0}");
-				state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
-				state.notWorking();
-			}
-			return true;
+		//setCheck("going to " + x + " " + y);
+		data.going = true;
+		data.gx = x;
+		data.gy = y;
+		data.gd = Math.atan2(data.currentY - y, data.currentX - x);	
+		if(data.gd < 0){
+			data.gd += (2*Math.PI);
 		}
-		if (!c1){
-			data.going = true;
-			data.gx = x;
-			data.gy = y;
-			data.push = push;
-			data.gd = Math.atan2(data.currentY - y, data.currentX - x);	
-			
-			if(data.gd < 0){
-				data.gd += (2*Math.PI);
-			}
-			check.setText(Double.toString(data.direction));
-			if(data.gd > data.direction){
-				if(data.gd - data.direction < Math.PI){
-					sendMessage("DRIVE {Left .2} {Right -.2}");
-				} else {
-					sendMessage("DRIVE {Left -.2} {Right-.2}");
-				}
-			} else {
-				if(data.direction - data.gd < Math.PI){
-					sendMessage("DRIVE {Left -.2} {Right .2}");
-				} else {
-					sendMessage("DRIVE {Left .2} {Right -.2}");
-				}
-			}
-			return false;
-		}
-		else{
-			data.gx = x;
-			data.gy = y;
-			data.push = push;
-			data.going = true;
-			sendMessage("DRIVE {Left .3} {Right .3}");
-			return false;
-		}
-		
-		
 	}
 	
 	public void setCheck(String line){
@@ -2347,6 +2281,24 @@ public class IridiumUI implements IridiumListener {
 	public double getBid(double x, double y) {
 		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(6);
 		return Math.sqrt(Math.pow(x + sensor.currentX, 2) + Math.pow(y + sensor.currentY, 2));
+	}
+	
+	public void complete(){
+		sendMessage("DRIVE {Left -1.0} {Right -1.0}");
+		try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		sendMessage("DRIVE {Left 0} {Right 0}");
+		state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
+		state.notWorking();
+	}
+	
+	public void requestAid(){
+		sendMessage("DRIVE {Left 0} {Right 0}");
+		state.sendHubMessage("H/"+ state.getId());
 	}
 	
 }

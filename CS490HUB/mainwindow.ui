@@ -10,9 +10,6 @@
     <height>300</height>
    </rect>
   </property>
-  <property name="focusPolicy">
-   <enum>Qt::ClickFocus</enum>
-  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
@@ -25,12 +22,6 @@
       <width>361</width>
       <height>71</height>
      </rect>
-    </property>
-    <property name="focusPolicy">
-     <enum>Qt::ClickFocus</enum>
-    </property>
-    <property name="readOnly">
-     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="initialize">
@@ -46,7 +37,75 @@
      <string>Initialize</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label1">
+   <widget class="QLabel" name="r1">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>190</y>
+      <width>46</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Robot 1</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Autnomous">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>140</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Autonomous</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="rselect">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>110</y>
+      <width>42</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>3</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="EStop">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>150</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>E-Stop</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Control">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>180</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Control</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="r2">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -56,33 +115,59 @@
      </rect>
     </property>
     <property name="text">
-     <string>NULL</string>
+     <string>Robot 2</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="Autnomous">
+   <widget class="QLabel" name="r3">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>110</y>
-      <width>75</width>
-      <height>23</height>
+      <x>30</x>
+      <y>230</y>
+      <width>46</width>
+      <height>13</height>
      </rect>
     </property>
     <property name="text">
-     <string>Autonomous</string>
+     <string>Robot 3</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="check">
+   <widget class="QLabel" name="status1">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>150</y>
-      <width>75</width>
-      <height>23</height>
+      <x>80</x>
+      <y>190</y>
+      <width>81</width>
+      <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Check</string>
+     <string>disconnected</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="status2">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>210</y>
+      <width>81</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>disconnected</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="status3">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>230</y>
+      <width>81</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>disconnected</string>
     </property>
    </widget>
   </widget>

@@ -30,13 +30,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ta, SIGNAL(winnerFound(int)),this,SLOT(onWinnerFound(int)));
     connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
 
-    //Make the text area non-editable so we can read key events
-    ui->textEdit->setReadOnly(true);
-
-    //Initalize key press trackers to false
-    aPressed = wPressed = sPressed = dPressed = false;
-
-
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
 //    connect(&socket2,SIGNAL(readyRead()),this,SLOT(on_message_received2()));
 //    connect(&socket3,SIGNAL(readyRead()),this,SLOT(on_message_received3()));
@@ -58,66 +51,6 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::keyPressEvent(QKeyEvent* event){
-    switch(event->key()){
-        case Qt::Key_W:
-            wPressed = true;
-            break;
-        case Qt::Key_A:
-            aPressed = true;
-            break;
-        case Qt::Key_S:
-            sPressed = true;
-            break;
-        case Qt::Key_D:
-            dPressed = true;
-            break;
-        default:
-            //Do nothing
-            break;
-    }
-    updateMotion();
-}
-
-void MainWindow::keyReleaseEvent(QKeyEvent* event){
-    switch(event->key()){
-        case Qt::Key_W:
-            wPressed = false;
-            break;
-        case Qt::Key_A:
-            aPressed = false;
-            break;
-        case Qt::Key_S:
-            sPressed = false;
-            break;
-        case Qt::Key_D:
-            dPressed = false;
-            break;
-        default:
-            //Do nothing
-            break;
-    }
-    updateMotion();
-}
-
-void MainWindow::updateMotion(){
-    //Robot ID 1 for now
-    QByteArray buf;
-    double right = 0, left = 0;
-
-    if(wPressed){right += 0.4; left += 0.4;}
-    if(aPressed){right -= 0.3; left += 0.3;}
-    if(sPressed){right -= 0.4; left -= 0.4;}
-    if(dPressed){right += 0.3; left -= 0.3;}
-
-    QString msg = "DRIVE/1/" + QString::number(right) + "/" + QString::number(left) + "/";
-
-    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
-
-    buf.append(msg);
-    sendMessage(buf, port1);
 }
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
@@ -172,6 +105,20 @@ void MainWindow::parseMessage(QByteArray buf){
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
         ta->taskCompleted(message[1].toInt());
+        switch(message[2].toInt()){
+        case 1:{
+            ui->status1->setText("Idle");
+            break;
+        }
+        case 2:{
+            ui->status2->setText("Idle");
+            break;
+        }
+        case 3:{
+            ui->status3->setText("Idle");
+            break;
+        }
+        }
         break;
     }
     case 'G':{
@@ -179,6 +126,9 @@ void MainWindow::parseMessage(QByteArray buf){
         if(ta->getBotCount() > 0){
             ta->assignNextTask();
         }
+    }
+    case 'H':{
+        //switch to teleoperation
     }
     default:
         if(waiting){
@@ -201,9 +151,12 @@ void MainWindow::on_initialize_clicked()
 {
     QByteArray data,data2,data3,data4;
     data.append("CONTROLLER/");
-    data2.append("ROBOT/1/6.5/-3.0/");
-    data3.append("ROBOT/2/2.5/-1.0/");
-    data4.append("ROBOT/3/-3.5/1.0/");
+    data2.append("ROBOT/1/5.0/2.0/");
+    data3.append("ROBOT/2/5.0/-2.0/");
+    data4.append("ROBOT/3/5.0/-6.0/");
+    ui->status1->setText("Connected");
+    ui->status2->setText("Connected");
+    ui->status3->setText("Connected");
     sendMessage(data, port1);
     sendMessage(data2,port1);
     sendMessage(data3, port1);
@@ -226,5 +179,33 @@ void MainWindow::onWinnerFound(int winner){
     qDebug() << winner;
     QByteArray data;
     data.append("WINNER/" + QString::number(winner) + "/");
+    switch(winner){
+    case 1:{
+        ui->status1->setText("On Task");
+        break;
+    }
+    case 2:{
+        ui->status2->setText("On Task");
+        break;
+    }
+    case 3:{
+        ui->status3->setText("On Task");
+        break;
+    }
+    }
     sendMessage(data,port1);
+}
+
+void MainWindow::on_EStop_clicked()
+{
+    int selection = ui->rselect->value();
+    QByteArray data;
+    data.append("ESTOP/" + QString::number(selection) + "/");
+    sendMessage(data,port1);
+}
+
+void MainWindow::on_Control_clicked()
+{
+    //int selection = ui->rselect->value();
+    //switch robot selected to teleoperation
 }
