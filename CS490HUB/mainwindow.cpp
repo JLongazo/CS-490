@@ -107,11 +107,11 @@ void MainWindow::updateMotion(){
     double right = 0, left = 0;
 
     if(wPressed){right += 0.4; left += 0.4;}
-    if(aPressed){right -= 0.3; left += 0.3;}
+    if(aPressed){right += 0.3; left -= 0.3;}
     if(sPressed){right -= 0.4; left -= 0.4;}
-    if(dPressed){right += 0.3; left -= 0.3;}
+    if(dPressed){right -= 0.3; left += 0.3;}
 
-    QString msg = "DRIVE/1/" + QString::number(right) + "/" + QString::number(left) + "/";
+    QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
 
     ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
 

@@ -257,7 +257,7 @@ public class Iridium implements IridiumConnector {
 			// Listener thread
 			try {
 				while(isConnected2()){
-					byte[] m = new byte[15];
+					byte[] m = new byte[30];
 					DatagramPacket p = new DatagramPacket(m, m.length);
 					//ui.setCheck("waiting");
 					toHUB.receive(p);
@@ -336,14 +336,17 @@ public class Iridium implements IridiumConnector {
 				}
             case "DRIVE":
                 //Assuming skid
-                ui.setCheck(message[1]);
-                double right = Double.parseDouble(message[2]);
-                double left = Double.parseDouble(message[3]);
-                
-                try{
-                    sendMessage(String.format("DRIVE {Left %.2f} {Right %.2f}", left, right));
-                } catch (IOException e){
-                    ui.setCheck("Error2 " + message[0]);
+                if(id == Integer.parseInt(message[1]) && isConnected()){
+                    double right = Double.parseDouble(message[2]);
+                    double left = Double.parseDouble(message[3]);
+                    
+                    ui.setCheck(line);
+                    
+                    try{
+                        sendMessage("DRIVE {Left " + left + "} {Right " + right + "}");
+                    } catch (IOException e){
+                        ui.setCheck("Error2 " + message[0]);
+                    }
                 }
                 break;
 			default:
