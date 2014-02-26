@@ -333,7 +333,19 @@ public class Iridium implements IridiumConnector {
 						ui.stopped = true;
 						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
 					}
-				} 
+				}
+            case "DRIVE":
+                //Assuming skid
+                ui.setCheck(message[1]);
+                double right = Double.parseDouble(message[2]);
+                double left = Double.parseDouble(message[3]);
+                
+                try{
+                    sendMessage(String.format("DRIVE {Left %.2f} {Right %.2f}", left, right));
+                } catch (IOException e){
+                    ui.setCheck("Error2 " + message[0]);
+                }
+                break;
 			default:
 				//ui.setCheck("error3");
 			}
