@@ -30,6 +30,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ta, SIGNAL(winnerFound(int)),this,SLOT(onWinnerFound(int)));
     connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
 
+    //Make the text area non-editable so we can read key events
+    ui->textEdit->setReadOnly(true);
+
+    //Initialize key press trackers to false
+    aPressed = wPressed = sPressed = dPressed = false;
+
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
 //    connect(&socket2,SIGNAL(readyRead()),this,SLOT(on_message_received2()));
 //    connect(&socket3,SIGNAL(readyRead()),this,SLOT(on_message_received3()));
@@ -51,6 +57,67 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* event){
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = true;
+            break;
+        case Qt::Key_A:
+            aPressed = true;
+            break;
+        case Qt::Key_S:
+            sPressed = true;
+            break;
+        case Qt::Key_D:
+            dPressed = true;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* event){
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = false;
+            break;
+        case Qt::Key_A:
+            aPressed = false;
+            break;
+        case Qt::Key_S:
+            sPressed = false;
+            break;
+        case Qt::Key_D:
+            dPressed = false;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
+}
+
+void MainWindow::updateMotion(){
+    //Robot ID 1 for now
+    QByteArray buf;
+    double right = 0, left = 0;
+
+    if(wPressed){right += 0.4; left += 0.4;}
+    if(aPressed){right -= 0.3; left += 0.3;}
+    if(sPressed){right -= 0.4; left -= 0.4;}
+    if(dPressed){right += 0.3; left -= 0.3;}
+
+    QString msg = "DRIVE/1/" + QString::number(right) + "/" + QString::number(left) + "/";
+
+    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+
+    buf.append(msg);
+    sendMessage(buf, port1);
+
 }
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
