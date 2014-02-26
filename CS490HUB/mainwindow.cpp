@@ -102,18 +102,17 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event){
 }
 
 void MainWindow::updateMotion(){
-    //Robot ID 1 for now
     QByteArray buf;
     double right = 0, left = 0;
 
-    if(wPressed){right += 0.4; left += 0.4;}
-    if(aPressed){right += 0.3; left -= 0.3;}
-    if(sPressed){right -= 0.4; left -= 0.4;}
-    if(dPressed){right -= 0.3; left += 0.3;}
+    if(wPressed){right += 0.7; left += 0.7;}
+    if(aPressed){right += 0.5; left -= 0.5;}
+    if(sPressed){right -= 0.7; left -= 0.7;}
+    if(dPressed){right -= 0.5; left += 0.5;}
 
     QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
 
-    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+    ui->textEdit->append("Robot " + QString::number(ui->rselect->value()) + ": Drive right: " + QString::number(right) + " | left: " + QString::number(left));
 
     buf.append(msg);
     sendMessage(buf, port1);
