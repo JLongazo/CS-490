@@ -7,15 +7,17 @@ TaskAllocator::TaskAllocator()
     }
     bidCount = 0;
     activeBots = 3;
-    currentTask = 0;
+    currentTask = -1;
     qDebug() << bidCount;
 }
 
 void TaskAllocator::assignNextTask(){
+    currentTask++;
     double x = tasks[currentTask].getX();
     double y = tasks[currentTask].getY();
-    currentTask++;
-    emit taskAssigned("TASK/" + QString::number(currentTask) + "/" + QString::number(x) + "/" + QString::number(y));
+    int r = tasks[currentTask].getRNum();
+    emit taskAssigned("TASK/" + QString::number(currentTask) + "/" + QString::number(x) + "/" + QString::number(y) +
+                      "/" + QString::number(r) + "/");
 }
 
 
@@ -30,7 +32,8 @@ void TaskAllocator::readTasks(QString filename){
             QStringList task = line.split(",");
             double x = task[0].toDouble();
             double y = task[1].toDouble();
-            Objective o(x,y);
+            int r = task[2].toInt();
+            Objective o(x,y,r);
             tasks[taskNum] = o;
             taskNum++;
         }
@@ -54,16 +57,17 @@ void TaskAllocator::addBid(int index, double bid){
 
 void TaskAllocator::taskCompleted(int index){
     tasks[index].setCompleted();
-    activeBots++;
-    if(currentTask < taskCount){
+    if(currentTask < taskCount-1){
         assignNextTask();
     }
 }
 
 void TaskAllocator::chooseWinner(){
     int winner = 0;
+    int winner2 = 0;
     for(int i = 0; i < MAX_BIDS; i++){
         if(bids[i] < bids[winner]){
+            winner2 = winner;
             winner = i;
         }
     }
@@ -72,5 +76,9 @@ void TaskAllocator::chooseWinner(){
         bids[i] = 100;
     }
     activeBots--;
-    emit winnerFound(winner+1);
+    if(tasks[currentTask].getRNum() == 2){
+        activeBots--;
+    }
+
+    emit winnerFound(winner+1,winner2+1);
 }

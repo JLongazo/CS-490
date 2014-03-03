@@ -18,3 +18,8 @@ Thumbs.db
 #Java build#
 ############
 IridiumSim/bin/
+
+###########
+#C++ Build#
+###########
+CS490HUB-Build/

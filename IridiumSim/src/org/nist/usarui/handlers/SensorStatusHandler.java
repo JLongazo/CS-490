@@ -39,6 +39,11 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 	public double range;
 	private boolean p1 = true;
 	private boolean right = false;
+	private long sTime;
+	private long tTime;
+	public boolean tCheck = false;
+	public boolean helpPending = false;
+	private int aCount = 0;
 	/**
 	 * Returns the 3-vector with colors.
 	 *
@@ -210,26 +215,36 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 			test = packet.getParam("Range");
 			
 			boolean avoiding = false;
-			double dist = Math.sqrt(Math.pow(currentX-gx, 2)+Math.pow(currentY - gy,2));
+			double dist = Math.sqrt(Math.pow(currentX - gx, 2)+Math.pow(currentY - gy,2));
 			if (test != null) {
 				String rf[] = test.split(",");
 				//value = Utils.asHTML(floatString(test, false));
 				double min = 8;
+				int index = 0;
 				for(int i = 0; i < rf.length; i++){
 					double check = Double.parseDouble(rf[i]);
 					if(check < min){
 						min = check;
+						index = i;
 					}
 				}
 				range = min;
-				ui.setCheck(Double.toString(range));
+				//ui.setCheck(Double.toString(range));
 				boolean close = false;
 				if( dist < 1){
 					close = true;
 				}
-				if(range < 2 && push && going && !close){
+				if(aCount > 15){
+					ui.requestAid();
+				}
+				if(range < 1.5 && push && going && !close && !ui.manual){
 					avoiding = true;
-					ui.sendMessage("DRIVE {Left 1} {Right -1}");
+					if(right){
+						ui.sendMessage("DRIVE {Left 2} {Right -2}");
+					}else {
+						ui.sendMessage("DRIVE {Left -2} {Right 2}");
+					}
+					aCount++;
 					/*try {
 						Thread.sleep(300);
 					} catch (InterruptedException e) {
@@ -270,7 +285,20 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 						right = true;
 					}
 				}
-				if(going && !avoiding && !ui.stopped){
+				if(!tCheck && going){
+					sTime = System.currentTimeMillis();
+					tTime = ((Math.round(dist) * 20000) + 20000 + sTime);
+					tCheck = true;
+				}
+				if((System.currentTimeMillis() > tTime) && going){
+					if(!helpPending){
+						ui.requestAid();
+					}
+					ui.setCheck("" + (tTime - sTime));
+					helpPending = true;
+				}
+				if(going && !avoiding && !ui.stopped && !ui.manual && !helpPending){
+					aCount = 0;
 					if(push){
 						if(Math.abs(direction - gd) > (Math.PI/2)){
 							if(right){
@@ -300,6 +328,21 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 								lSpeed = -.2;
 								rSpeed = .2;
 							}
+						}else{
+							
+							if(ui.coordinate){
+								ui.notifyCompanion();
+								if(!ui.cReady){
+									lSpeed = 0;
+									rSpeed = 0;
+								}else{
+									ui.nearComp = true;
+									ui.canBid();
+								}
+							}else{
+								ui.nearComp = true;
+								ui.canBid();
+							}
 						}
 					}
 					if(currentX + .3 > gx && currentX - .3 < gx && currentY + .3 > gy && currentY - .3 < gy){
@@ -307,10 +350,12 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 						if(push){
 							ui.push(gx, ty, true);
 							push = false;
-							ui.setCheck("pushing");
+							//ui.setCheck("pushing");
 						}else{
 							going = false;
 							ui.complete();
+							tCheck = false;
+							helpPending = false;
 						}
 					}else{
 						if(dist > 5 && push){
@@ -322,6 +367,10 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 						}
 						ui.sendMessage("DRIVE {Left " + Double.toString(lSpeed) + "} {Right " + Double.toString(rSpeed) +"}");
 					}
+				}
+				if(ui.manual){
+					tCheck = false;
+					ui.updateHUB(currentX, currentY);
 				}
 				value = Utils.asHTML("<b>At</b> (" + color3Vector(test, false) +
 					"), <b>facing</b> (" + color3Vector(packet.getParam("Orientation"), deg) +
@@ -342,5 +391,12 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 			keep = false; // was set to false by S. Carlson, set to true to see all messages.
 		}
 		return keep;
+	}
+	
+	public void forceComplete(){
+		going = false;
+		ui.complete();
+		tCheck = false;
+		helpPending = false;
 	}
 }

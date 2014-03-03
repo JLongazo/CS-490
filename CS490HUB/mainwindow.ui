@@ -83,7 +83,7 @@
     <property name="geometry">
      <rect>
       <x>270</x>
-      <y>150</y>
+      <y>160</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -96,7 +96,7 @@
     <property name="geometry">
      <rect>
       <x>270</x>
-      <y>180</y>
+      <y>190</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -168,6 +168,32 @@
     </property>
     <property name="text">
      <string>disconnected</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="complete">
+    <property name="geometry">
+     <rect>
+      <x>270</x>
+      <y>220</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Complete</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="rStatus">
+    <property name="geometry">
+     <rect>
+      <x>240</x>
+      <y>140</y>
+      <width>131</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Not Connected</string>
     </property>
    </widget>
   </widget>

@@ -10,6 +10,7 @@
 #include <QtNetwork/QUdpSocket>
 #include "taskallocator.h"
 
+#include <QKeyEvent>
 
 //void readMessage(QTcpSocket &s, int r);
 
@@ -30,8 +31,12 @@ public:
     bool sendMessage(QByteArray&, quint16);
     void parseMessage(QByteArray buf);
 
+    virtual void keyPressEvent(QKeyEvent*);
+    virtual void keyReleaseEvent(QKeyEvent*);
+    void updateMotion();
+
 public slots:
-     void onWinnerFound(int winner);
+     void onWinnerFound(int winner, int winner2);
 
 private slots:
 
@@ -45,11 +50,16 @@ private slots:
 
     void on_Control_clicked();
 
+    void on_complete_clicked();
+
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
     int winnerB;
-
+    int replys;
+    bool stopped[3];
+    bool manual[3];
+    bool aPressed, wPressed, sPressed, dPressed;
 //    int port2 = 2001;
 //    int port3 = 2002;
 //    int port4 = 2003;

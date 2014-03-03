@@ -27,8 +27,17 @@ MainWindow::MainWindow(QWidget *parent) :
     socket->bind(QHostAddress::LocalHost, port1, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
     qDebug() << "socket created";
     connect(socket, SIGNAL(readyRead()), this, SLOT(onMessageReceived()));
-    connect(ta, SIGNAL(winnerFound(int)),this,SLOT(onWinnerFound(int)));
+    connect(ta, SIGNAL(winnerFound(int,int)),this,SLOT(onWinnerFound(int,int)));
     connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
+    for(int i = 0; i < 3; i++){
+        manual[i] = false;
+        stopped[i] = false;
+    }
+    //Make the text area non-editable so we can read key events
+    ui->textEdit->setReadOnly(true);
+
+    //Initialize key press trackers to false
+    aPressed = wPressed = sPressed = dPressed = false;
 
 //    connect(&socket,SIGNAL(readyRead()),this,SLOT(on_message_received1()));
 //    connect(&socket2,SIGNAL(readyRead()),this,SLOT(on_message_received2()));
@@ -51,6 +60,67 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* event){
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = true;
+            break;
+        case Qt::Key_A:
+            aPressed = true;
+            break;
+        case Qt::Key_S:
+            sPressed = true;
+            break;
+        case Qt::Key_D:
+            dPressed = true;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* event){
+    switch(event->key()){
+        case Qt::Key_W:
+            wPressed = false;
+            break;
+        case Qt::Key_A:
+            aPressed = false;
+            break;
+        case Qt::Key_S:
+            sPressed = false;
+            break;
+        case Qt::Key_D:
+            dPressed = false;
+            break;
+        default:
+            //Do nothing
+            break;
+    }
+    updateMotion();
+}
+
+void MainWindow::updateMotion(){
+
+    QByteArray buf;
+    double right = 0, left = 0;
+
+    if(wPressed){right += 0.4; left += 0.4;}
+    if(aPressed){right += 0.4; left -= 0.4;}
+    if(sPressed){right -= 0.4; left -= 0.4;}
+    if(dPressed){right -= 0.4; left += 0.4;}
+
+    QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
+
+    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+
+    buf.append(msg);
+    sendMessage(buf, port1);
+
 }
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
@@ -107,28 +177,71 @@ void MainWindow::parseMessage(QByteArray buf){
         ta->taskCompleted(message[1].toInt());
         switch(message[2].toInt()){
         case 1:{
-            ui->status1->setText("Idle");
+            //ui->status1->setText("Idle");
             break;
         }
         case 2:{
-            ui->status2->setText("Idle");
+            //ui->status2->setText("Idle");
             break;
         }
         case 3:{
-            ui->status3->setText("Idle");
+            //ui->status3->setText("Idle");
             break;
         }
         }
         break;
     }
+    case 'A':{
+        ta->activeBots++;
+        break;
+    }
+    case 'D':{
+        QString line(buf);
+        line = line.right(line.length() - 1);
+        QStringList message = line.split("/");
+        if(message[1].toInt() == ui->rselect->value()){
+            double x = message[2].toDouble();
+            double y = message[3].toDouble();
+            int task = message[4].toInt();
+            ui->rStatus->setText("R:" + QString::number(x) + ", " + QString::number(y) + "; T:" +
+                                 QString::number(ta->tasks[task].getX()) + ", " + QString::number(ta->tasks[task].getY()));
+        }
+        break;
+    }
     case 'G':{
         waiting = false;
-        if(ta->getBotCount() > 0){
+        replys++;
+        if(ta->activeBots > 0 && replys == ta->tasks[ta->currentTask].getRNum()){
             ta->assignNextTask();
         }
+        break;
     }
     case 'H':{
-        //switch to teleoperation
+        QString line(buf);
+        line = line.right(line.length() - 1);
+        QStringList message = line.split("/");
+        switch(message[1].toInt()){
+        case 1:{
+            ui->status1->setText("Req. Tele.");
+            break;
+        }
+        case 2:{
+            ui->status2->setText("Req. Tele.");
+            break;
+        }
+        case 3:{
+            ui->status3->setText("Req. Tele.");
+            break;
+        }
+        }
+        break;
+    }
+    case 'F':{
+        QString line(buf);
+        line = line.right(line.length() - 1);
+        buf = NULL;
+        buf.append("R" + line);
+        sendMessage(buf,port1);
     }
     default:
         if(waiting){
@@ -151,9 +264,9 @@ void MainWindow::on_initialize_clicked()
 {
     QByteArray data,data2,data3,data4;
     data.append("CONTROLLER/");
-    data2.append("ROBOT/1/5.0/2.0/");
-    data3.append("ROBOT/2/5.0/-2.0/");
-    data4.append("ROBOT/3/5.0/-6.0/");
+    data2.append("ROBOT/1/5.0/3.0/");
+    data3.append("ROBOT/2/5.0/-1.0/");
+    data4.append("ROBOT/3/5.0/-4.0/");
     ui->status1->setText("Connected");
     ui->status2->setText("Connected");
     ui->status3->setText("Connected");
@@ -175,25 +288,47 @@ void MainWindow::onTaskAssigned(QString message){
     sendMessage(m,9001);
 }
 
-void MainWindow::onWinnerFound(int winner){
-    qDebug() << winner;
+void MainWindow::onWinnerFound(int winner, int winner2){
+    //qDebug() << winner;
     QByteArray data;
-    data.append("WINNER/" + QString::number(winner) + "/");
+    replys = 0;
+    data.append("WINNER/" + QString::number(winner) + "/1/");
     switch(winner){
     case 1:{
-        ui->status1->setText("On Task");
+        ui->status1->setText("On Auto");
         break;
     }
     case 2:{
-        ui->status2->setText("On Task");
+        ui->status2->setText("On Auto");
         break;
     }
     case 3:{
-        ui->status3->setText("On Task");
+        ui->status3->setText("On Auto");
         break;
     }
     }
     sendMessage(data,port1);
+    if(ta->tasks[ta->currentTask].getRNum() == 2){
+        data = NULL;
+        data.append("WINNER/" + QString::number(winner2) + "/2/");
+        switch(winner2){
+        case 1:{
+            ui->status1->setText("On Auto");
+            break;
+        }
+        case 2:{
+            ui->status2->setText("On Auto");
+            break;
+        }
+        case 3:{
+            ui->status3->setText("On Auto");
+            break;
+        }
+        }
+
+        sendMessage(data,port1);
+    }
+
 }
 
 void MainWindow::on_EStop_clicked()
@@ -202,10 +337,78 @@ void MainWindow::on_EStop_clicked()
     QByteArray data;
     data.append("ESTOP/" + QString::number(selection) + "/");
     sendMessage(data,port1);
+    switch(selection){
+    case 1:{
+        if(stopped[0]){
+            ui->status1->setText("On Auto");
+        }else{
+            ui->status1->setText("Idle");
+        }
+        stopped[0] = !stopped[0];
+        break;
+    }
+    case 2:{
+        if(stopped[1]){
+            ui->status2->setText("On Auto");
+        }else{
+            ui->status2->setText("Idle");
+        }
+        stopped[1] = !stopped[1];
+        break;
+    }
+    case 3:{
+        if(stopped[2]){
+            ui->status3->setText("On Auto");
+        }else{
+            ui->status3->setText("Idle");
+        }
+        stopped[2] = !stopped[2];
+        break;
+    }
+    }
 }
 
 void MainWindow::on_Control_clicked()
 {
-    //int selection = ui->rselect->value();
-    //switch robot selected to teleoperation
+    int selection = ui->rselect->value();
+    QByteArray data;
+    data.append("SWITCH/" + QString::number(selection) + "/");
+    sendMessage(data,port1);
+    switch(selection){
+    case 1:{
+        if(!manual[0]){
+            ui->status1->setText("On Tele.");
+        }else{
+            ui->status1->setText("On Auto");
+        }
+        manual[0] = !manual[0];
+        break;
+    }
+    case 2:{
+        if(!manual[1]){
+            ui->status2->setText("On Tele.");
+        }else{
+            ui->status2->setText("On Auto");
+        }
+        manual[1] = !manual[1];
+        break;
+    }
+    case 3:{
+        if(!manual[2]){
+            ui->status3->setText("On Tele.");
+        }else{
+            ui->status3->setText("On Auto");
+        }
+        manual[2] = !manual[2];
+        break;
+    }
+    }
+}
+
+void MainWindow::on_complete_clicked()
+{
+    int selection = ui->rselect->value();
+    QByteArray data;
+    data.append("COMPLETE/" + QString::number(selection) + "/");
+    sendMessage(data,port1);
 }
