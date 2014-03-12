@@ -16,8 +16,9 @@ void TaskAllocator::assignNextTask(){
     double x = tasks[currentTask].getX();
     double y = tasks[currentTask].getY();
     int r = tasks[currentTask].getRNum();
+    int w = tasks[currentTask].getWeight();
     emit taskAssigned("TASK/" + QString::number(currentTask) + "/" + QString::number(x) + "/" + QString::number(y) +
-                      "/" + QString::number(r) + "/");
+                      "/" + QString::number(r) + "/" + QString::number(w) + "/");
 }
 
 
@@ -33,7 +34,8 @@ void TaskAllocator::readTasks(QString filename){
             double x = task[0].toDouble();
             double y = task[1].toDouble();
             int r = task[2].toInt();
-            Objective o(x,y,r);
+            int w = task[3].toInt();
+            Objective o(x,y,r,w);
             tasks[taskNum] = o;
             taskNum++;
         }

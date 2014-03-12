@@ -156,13 +156,14 @@ public class IridiumUI implements IridiumListener {
 	private String emptyString;
 	private JLabel check;
 	
-	public boolean stopped = false;
-	public boolean manual = false;
-	public boolean coordinate = false;
-	public boolean cReady = false;
-	public boolean nearComp = false;
-	private boolean cNotify = false;
-	private boolean bidStatus = false;
+	public boolean stopped = false; //estopped
+	public boolean manual = false;	//in teleoperation mode
+	public boolean coordinate = false;	//must work with other robots
+	public boolean cReady = false;		//other robot is ready to perform task
+	public boolean nearComp = false;	//robot is near completion and can bid again
+	public int pushStrength;	
+	private boolean cNotify = false;	//used to check whether this robot has notified others that it is ready to perform task
+	private boolean bidStatus = false;	//used to determine whether or not this robot notified the hub that it can bid
 
 	//------------------------------
 	

@@ -35,10 +35,11 @@ public class Iridium implements IridiumConnector {
 	private int id;
 	public double tx;
 	public double ty;
+	public double tw;
 	private int taskNum;
-	private boolean working = false;
-	private boolean waiting = false;
-	private boolean controller = false;
+	private boolean working = false;  //performing task
+	private boolean waiting = false;	//has task backlogged
+	private boolean controller = false;	//is world controller
 	private int rNum;
 	
 	
@@ -312,6 +313,7 @@ public class Iridium implements IridiumConnector {
 					tx = Double.parseDouble(message[2]);
 					ty = Double.parseDouble(message[3]);
 					rNum = Integer.parseInt(message[4]);
+					tw = Integer.parseInt(message[5]);
 					taskNum = Integer.parseInt(message[1]);
 					double bid = ui.getBid(tx, ty);
 					sendHubMessage("B/"+ Integer.toString(id) + "/" + Double.toString(bid) + "/");
