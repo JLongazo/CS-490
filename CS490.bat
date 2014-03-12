@@ -1,9 +1,9 @@
 @echo off
 rem Iridium
-rem cd C:\UDK\UDK-2013-07\USARTools\IridiumUI-Sim\bin
-start IridiumSim.jar 1
-start IridiumSim.jar 2
-start IridiumSim.jar 3
-start IridiumSim.jar 4
+
+start IridiumSim.jar 1 40
+start IridiumSim.jar 2 50
+start IridiumSim.jar 3 60
+start IridiumSim.jar 4 0
 exit
 

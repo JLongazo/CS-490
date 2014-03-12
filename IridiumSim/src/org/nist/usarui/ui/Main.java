@@ -29,6 +29,7 @@ public class Main {
 		final IridiumUI ui = new IridiumUI(program);
 		program.setUI(ui);
 		program.setId(Integer.parseInt(args[0]));
+		ui.pushStrength = Integer.parseInt(args[1]);
 		final Image icon16 = Utils.loadImage("images/icon16.png").getImage();
 		final Image icon32 = Utils.loadImage("images/icon32.png").getImage();
 		final Image icon48 = Utils.loadImage("images/icon48.png").getImage();

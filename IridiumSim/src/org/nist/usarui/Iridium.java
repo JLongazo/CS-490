@@ -35,9 +35,13 @@ public class Iridium implements IridiumConnector {
 	private int id;
 	public double tx;
 	public double ty;
+	public double tw;
 	private int taskNum;
-	private boolean working = false;
-	private boolean controller = false;
+	private boolean working = false;  //performing task
+	private boolean waiting = false;	//has task backlogged
+	private boolean controller = false;	//is world controller
+	private int rNum;
+	
 	
 
 	/**
@@ -280,7 +284,7 @@ public class Iridium implements IridiumConnector {
 						ui.setCheck(line);
 						controller = true;
 						sendMessage("INIT {ClassName USARBotAPI.WorldController} {Location -1.2700, -0.9400, 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 4.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 4.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 3.0000, 1.0000, 1.0000} {Physics RigidBody}");
 						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 5.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
@@ -294,10 +298,10 @@ public class Iridium implements IridiumConnector {
 				try {
 					
 					if(id == Integer.parseInt(message[1]) && isConnected()){
-						ui.setCheck(message[1]);
+						//ui.setCheck(message[1]);
 						double x = Double.parseDouble(message[2]);
 						double y = Double.parseDouble(message[3]);
-						sendMessage("INIT {ClassName USARBot.BasicSkidRobot} {Location " + x + ", " + y + ", 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
+						sendMessage("INIT {ClassName USARBot.BasicSkidRobot} {Location " + x + ", " + y + ", 1.4700} {Rotation 0.0000, 0.0000, 3.1400}");
 					}
 				}catch(IOException e){
 					ui.setCheck("error2 " + message[0]);
@@ -305,9 +309,11 @@ public class Iridium implements IridiumConnector {
 				break;
 			case "TASK":
 				//ui.setCheck(line);
-				if(!working && !controller){
+				if((!working || ui.nearComp) && !controller && !waiting){
 					tx = Double.parseDouble(message[2]);
 					ty = Double.parseDouble(message[3]);
+					rNum = Integer.parseInt(message[4]);
+					tw = Integer.parseInt(message[5]);
 					taskNum = Integer.parseInt(message[1]);
 					double bid = ui.getBid(tx, ty);
 					sendHubMessage("B/"+ Integer.toString(id) + "/" + Double.toString(bid) + "/");
@@ -316,13 +322,24 @@ public class Iridium implements IridiumConnector {
 			case "WINNER":
 				//ui.setCheck(line);
 				if(id == Integer.parseInt(message[1]) && isConnected()){
-					ui.push(tx, ty, false);
-					working = true;
 					sendHubMessage("G/");
+					if(working){
+						waiting = true;
+					}else{
+						if(rNum == 2){
+							int r = Integer.parseInt(message[2]);
+							ui.coordinate = true;
+							if(r == 1){
+								tx -= 1.5;
+							}else{
+								tx += 1.5;
+							}
+						}
+						ui.push(tx, ty, false);
+						working = true;
+					}
 					
-				} else {
-					tx = 0;
-					ty = 0;
+					
 				}
 				break;
 			case "ESTOP":
@@ -334,21 +351,37 @@ public class Iridium implements IridiumConnector {
 						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
 					}
 				}
+        
+				break;
+			case "SWITCH":
+				if(id == Integer.parseInt(message[1]) && isConnected()){
+					ui.switchControlMode();
+				}
+				break;
+			case "COMPLETE":
+				if(id == Integer.parseInt(message[1]) && isConnected()){
+					ui.forceComplete();
+				}
+				break;
             case "DRIVE":
                 //Assuming skid
-                if(id == Integer.parseInt(message[1]) && isConnected()){
-                    double right = Double.parseDouble(message[2]);
-                    double left = Double.parseDouble(message[3]);
-                    
-                    ui.setCheck(line);
-                    
-                    try{
-                        sendMessage("DRIVE {Left " + left + "} {Right " + right + "}");
-                    } catch (IOException e){
-                        ui.setCheck("Error2 " + message[0]);
-                    }
-                }
+            	if(id == Integer.parseInt(message[1]) && isConnected() && ui.manual){
+            		double right = Double.parseDouble(message[2]);
+            		double left = Double.parseDouble(message[3]);
+                
+            		try{
+            			sendMessage(String.format("DRIVE {Left %.2f} {Right %.2f}", left, right));
+            		} catch (IOException e){
+            			ui.setCheck("Error2 " + message[0]);
+            		}
+            	}
                 break;
+            case "R":
+            	if(taskNum == Integer.parseInt(message[1]) && isConnected() && id != Integer.parseInt(message[2])){
+            		ui.cReady = true;
+            		ui.setCheck("Companion Ready");
+            	}
+            	break;
 			default:
 				//ui.setCheck("error3");
 			}
@@ -382,5 +415,9 @@ public class Iridium implements IridiumConnector {
 	
 	public void notWorking(){
 		working = false;
+		if(waiting){
+			ui.push(tx, ty, false);
+			working = true;
+		}
 	}
 }

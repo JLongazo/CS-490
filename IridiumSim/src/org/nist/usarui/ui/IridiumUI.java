@@ -156,7 +156,14 @@ public class IridiumUI implements IridiumListener {
 	private String emptyString;
 	private JLabel check;
 	
-	public boolean stopped = false;
+	public boolean stopped = false; //estopped
+	public boolean manual = false;	//in teleoperation mode
+	public boolean coordinate = false;	//must work with other robots
+	public boolean cReady = false;		//other robot is ready to perform task
+	public boolean nearComp = false;	//robot is near completion and can bid again
+	public int pushStrength;	
+	private boolean cNotify = false;	//used to check whether this robot has notified others that it is ready to perform task
+	private boolean bidStatus = false;	//used to determine whether or not this robot notified the hub that it can bid
 
 	//------------------------------
 	
@@ -2239,6 +2246,7 @@ public class IridiumUI implements IridiumListener {
 	
 	public void push(double x, double y, boolean p2){
 		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		bidStatus = false;
 		if(!p2){
 			setCheck("pushing " + x + " " + y);
 			data.tx = x;
@@ -2294,11 +2302,50 @@ public class IridiumUI implements IridiumListener {
 		sendMessage("DRIVE {Left 0} {Right 0}");
 		state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
 		state.notWorking();
+		nearComp = false;
+		cNotify = false;
+		coordinate = false;
+	}
+	
+	public void forceComplete(){
+		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		data.forceComplete();
+	}
+	public void updateHUB(double x, double y){
+		state.sendHubMessage("D/" + state.getId() + "/" + x + "/" + y + "/" + state.getTN() + "/");
 	}
 	
 	public void requestAid(){
 		sendMessage("DRIVE {Left 0} {Right 0}");
 		state.sendHubMessage("H/"+ state.getId());
+		manual = true;
+	}
+	
+	public void switchControlMode(){
+		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(6);
+		if(manual){
+			manual = false;
+			sensor.tCheck = false;
+			sensor.helpPending = false;
+		}else{
+			manual = true;
+			sendMessage("DRIVE {Left 0} {Right 0}");
+		}
+	}
+	
+	
+	public void canBid(){
+		if(!bidStatus){
+			state.sendHubMessage("A/" + state.getId() +"/");
+			bidStatus = true;
+		}
+	}
+	
+	public void notifyCompanion(){
+		if(!cNotify){
+			state.sendHubMessage("F/" + state.getTN() +"/" + state.getId() +"/");
+			cNotify = true;
+		}
 	}
 	
 }

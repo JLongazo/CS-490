@@ -19,6 +19,7 @@ public:
     Objective tasks[MAX_TASKS];
     int taskCount;
     int currentTask;
+    int activeBots;
 
     void addBid(int index, double bid);
     quint16 getWinner();
@@ -26,17 +27,16 @@ public:
     void taskCompleted(int index);
     void assignNextTask();
     void chooseWinner();
-    int getBotCount(){return activeBots;}
 
 private:
     double bids[MAX_BIDS];
     int bidCount;
-    int activeBots;
+
 
 signals:
     void tasksCollected();
     void taskAssigned(QString task);
-    void winnerFound(int winner);
+    void winnerFound(int winner, int winner2);
 };
 
 #endif // TASKALLOCATOR_H

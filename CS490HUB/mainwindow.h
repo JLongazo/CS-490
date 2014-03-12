@@ -36,7 +36,7 @@ public:
     void updateMotion();
 
 public slots:
-     void onWinnerFound(int winner);
+     void onWinnerFound(int winner, int winner2);
 
 private slots:
 
@@ -50,11 +50,19 @@ private slots:
 
     void on_Control_clicked();
 
+    void on_complete_clicked();
+
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
     int winnerB;
+<<<<<<< HEAD
 
+=======
+    int replys;
+    bool stopped[3];
+    bool manual[3];
+>>>>>>> Autonomous
     bool aPressed, wPressed, sPressed, dPressed;
 //    int port2 = 2001;
 //    int port3 = 2002;
