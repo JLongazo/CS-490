@@ -7,6 +7,8 @@
 //#include <QtNetwork/QTcpSocket>
 #include <QMainWindow>
 #include <QThread>
+#include <QStandardItemModel>
+#include <QProcess>
 #include <QtNetwork/QUdpSocket>
 #include "taskallocator.h"
 
@@ -52,17 +54,17 @@ private slots:
 
     void on_complete_clicked();
 
+    void on_startSim_clicked();
+
+    void on_robotTable_clicked(const QModelIndex &index);
+
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
     int winnerB;
-<<<<<<< HEAD
-
-=======
     int replys;
     bool stopped[3];
     bool manual[3];
->>>>>>> Autonomous
     bool aPressed, wPressed, sPressed, dPressed;
 //    int port2 = 2001;
 //    int port3 = 2002;

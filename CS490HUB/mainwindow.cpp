@@ -14,12 +14,30 @@ quint16 port1 = 9001;
 
 TaskAllocator* ta;
 
+int id = 0;
+
+QStandardItemModel *model;
+QStandardItem *r1ID;
+QStandardItem *r1Type;
+QStandardItem *r1Status;
+QStandardItem *r2ID;
+QStandardItem *r2Type;
+QStandardItem *r2Status;
+QStandardItem *r3ID;
+QStandardItem *r3Type;
+QStandardItem *r3Status;
+QStandardItem *wID;
+QStandardItem *wType;
+QStandardItem *wStatus;
+
 bool waiting = false;
+bool world = false;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+
     winnerB = 0;
     ui->setupUi(this);
     ta = new TaskAllocator();
@@ -33,12 +51,6 @@ MainWindow::MainWindow(QWidget *parent) :
         manual[i] = false;
         stopped[i] = false;
     }
-    //Make the text area non-editable so we can read key events
-    ui->textEdit->setReadOnly(true);
-
-    //Initialize key press trackers to false
-    aPressed = wPressed = sPressed = dPressed = false;
-
     //Make the text area non-editable so we can read key events
     ui->textEdit->setReadOnly(true);
 
@@ -61,6 +73,18 @@ MainWindow::MainWindow(QWidget *parent) :
 //    }else{
 //        qDebug() << "not connected";
 //    }
+    QStringList hHeader;
+    hHeader.append("ID");
+    hHeader.append("TYPE");
+    hHeader.append("STATUS");
+    //model.index(1,1,model.index(0,0));
+    model = new QStandardItemModel(0,3,this);
+    model->setHorizontalHeaderLabels(hHeader);
+    ui->robotTable->setModel(model);
+    ui->robotTable->setColumnWidth(0,30);
+    ui->robotTable->setColumnWidth(1,50);
+    ui->robotTable->horizontalHeader()->setStretchLastSection(true);
+    //ui->robotTable->resizeColumnsToContents();
 }
 
 MainWindow::~MainWindow()
@@ -111,19 +135,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event){
 }
 
 void MainWindow::updateMotion(){
-<<<<<<< HEAD
-    QByteArray buf;
-    double right = 0, left = 0;
-
-    if(wPressed){right += 0.7; left += 0.7;}
-    if(aPressed){right += 0.5; left -= 0.5;}
-    if(sPressed){right -= 0.7; left -= 0.7;}
-    if(dPressed){right -= 0.5; left += 0.5;}
-
-    QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
-
-    ui->textEdit->append("Robot " + QString::number(ui->rselect->value()) + ": Drive right: " + QString::number(right) + " | left: " + QString::number(left));
-=======
 
     QByteArray buf;
     double right = 0, left = 0;
@@ -136,7 +147,6 @@ void MainWindow::updateMotion(){
     QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
 
     ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
->>>>>>> Autonomous
 
     buf.append(msg);
     sendMessage(buf, port1);
@@ -145,6 +155,7 @@ void MainWindow::updateMotion(){
 
 bool MainWindow::sendMessage(QByteArray &data, quint16 port){
     socket->writeDatagram(data, QHostAddress::Broadcast, port);
+    //ui->textEdit->append("Message Sent: " + QString(data));
     if(socket->waitForBytesWritten()){}
     return true;
 }
@@ -161,6 +172,8 @@ bool MainWindow::onMessageReceived(){
     qDebug() << "Message from: " << sender.toString();
     qDebug() << "Message port: " << sender_port;
     qDebug() << "Message: " << buf;
+
+    //ui->textEdit->append("Message Received: " + QString(buf));
 
     parseMessage(buf);
 
@@ -188,6 +201,7 @@ void MainWindow::parseMessage(QByteArray buf){
         QStringList message = line.split("/");
         ta->addBid(message[1].toInt()-1,message[2].toDouble());
         //qDebug() << "Bid recieved: " + message[2];
+        ui->textEdit->append("Bid Recieved: Robot - " + message[1]);
         break;
     }
     case 'N':{
@@ -195,6 +209,7 @@ void MainWindow::parseMessage(QByteArray buf){
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
         ta->taskCompleted(message[1].toInt());
+        ui->textEdit->append("Task Completed: Robot - " + message[1]);
         switch(message[2].toInt()){
         case 1:{
             //ui->status1->setText("Idle");
@@ -231,6 +246,7 @@ void MainWindow::parseMessage(QByteArray buf){
     case 'G':{
         waiting = false;
         replys++;
+        ui->textEdit->append("Winner Accepts");
         if(ta->activeBots > 0 && replys == ta->tasks[ta->currentTask].getRNum()){
             ta->assignNextTask();
         }
@@ -240,17 +256,18 @@ void MainWindow::parseMessage(QByteArray buf){
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
+        ui->textEdit->append("Teleoperation Request: Robot - " + message[1]);
         switch(message[1].toInt()){
         case 1:{
-            ui->status1->setText("Req. Tele.");
+            r1Status->setAccessibleText("Req. Tele.");
             break;
         }
         case 2:{
-            ui->status2->setText("Req. Tele.");
+            r2Status->setAccessibleText("Req. Tele.");
             break;
         }
         case 3:{
-            ui->status3->setText("Req. Tele.");
+            r3Status->setAccessibleText("Req. Tele.");
             break;
         }
         }
@@ -280,20 +297,73 @@ void MainWindow::parseMessage(QByteArray buf){
 //}
 
 
-void MainWindow::on_initialize_clicked()
+void MainWindow::on_initialize_clicked() // create button
 {
-    QByteArray data,data2,data3,data4;
-    data.append("CONTROLLER/");
-    data2.append("ROBOT/1/5.0/3.0/");
-    data3.append("ROBOT/2/5.0/-1.0/");
-    data4.append("ROBOT/3/5.0/-4.0/");
-    ui->status1->setText("Connected");
-    ui->status2->setText("Connected");
-    ui->status3->setText("Connected");
-    sendMessage(data, port1);
-    sendMessage(data2,port1);
-    sendMessage(data3, port1);
-    sendMessage(data4,port1);
+    QByteArray data;
+    if(!(ui->robotSel->isChecked() && ui->worldSel->isChecked())){
+        QString iridium;
+        //QStringList args;
+        iridium.append("java -jar C:\\Qt\\CS490HUB\\IridiumSim.jar ");
+        QProcess *irid = new QProcess(this);
+        if(ui->robotSel->isChecked() && ta->activeBots < 3){
+            id++;
+            if(id > 1){
+                ui->rselect->setMaximum(id);
+            }
+            ta->activeBots++;
+            iridium.append(QString::number(id));
+            switch(ta->activeBots){
+            case 1:
+                iridium.append(" 40");
+                data.append("ROBOT/1/5.0/3.0/");
+                r1ID = new QStandardItem(QString::number(id));
+                model->setItem(id-1, 0, r1ID);
+                r1Type = new QStandardItem("ROBOT");
+                 model->setItem(id-1, 1, r1Type);
+                r1Status = new QStandardItem("Connected");
+                 model->setItem(id-1, 2, r1Status);
+                break;
+            case 2:
+                iridium.append(" 50");
+                data.append("ROBOT/2/5.0/-1.0/");
+                r2ID = new QStandardItem(QString::number(id));
+                model->setItem(id-1, 0, r2ID);
+                r2Type = new QStandardItem("ROBOT");
+                 model->setItem(id-1, 1, r2Type);
+                r2Status = new QStandardItem("Connected");
+                 model->setItem(id-1, 2, r2Status);
+                break;
+            case 3:
+                iridium.append(" 60");
+                data.append("ROBOT/3/5.0/-4.0/");
+                r3ID = new QStandardItem(QString::number(id));
+                model->setItem(id-1, 0, r3ID);
+                r3Type = new QStandardItem("ROBOT");
+                 model->setItem(id-1, 1, r3Type);
+                r3Status = new QStandardItem("Connected");
+                 model->setItem(id-1, 2, r3Status);
+                break;
+            }
+            irid->start(iridium);
+            qDebug()<<irid->errorString();
+            QThread::sleep(3);
+            sendMessage(data, port1);
+        } else if(ui->worldSel->isChecked() && !world){
+            id++;
+            world = true;
+            iridium.append(QString::number(id));
+            data.append("CONTROLLER/");
+            irid->start(iridium);
+            QThread::sleep(3);
+            wID = new QStandardItem(QString::number(id));
+            model->setItem(id-1, 0, wID);
+            wType = new QStandardItem("WORLD");
+             model->setItem(id-1, 1, wType);
+            wStatus = new QStandardItem("Connected");
+             model->setItem(id-1, 2, wStatus);
+            sendMessage(data, port1);
+        }
+    }
 }
 
 void MainWindow::on_Autnomous_clicked()
@@ -306,6 +376,7 @@ void MainWindow::onTaskAssigned(QString message){
     QByteArray m;
     m.append(message);
     sendMessage(m,9001);
+    ui->textEdit->append("New Task Assigned, Awaiting Bids");
 }
 
 void MainWindow::onWinnerFound(int winner, int winner2){
@@ -313,17 +384,18 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     QByteArray data;
     replys = 0;
     data.append("WINNER/" + QString::number(winner) + "/1/");
+    ui->textEdit->append("Winner Chosen: Robot - " + QString::number(winner));
     switch(winner){
     case 1:{
-        ui->status1->setText("On Auto");
+        r1Status->setAccessibleText("On Auto");
         break;
     }
     case 2:{
-        ui->status2->setText("On Auto");
+        r2Status->setAccessibleText("On Auto");
         break;
     }
     case 3:{
-        ui->status3->setText("On Auto");
+        r3Status->setAccessibleText("On Auto");
         break;
     }
     }
@@ -331,17 +403,18 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     if(ta->tasks[ta->currentTask].getRNum() == 2){
         data = NULL;
         data.append("WINNER/" + QString::number(winner2) + "/2/");
+        ui->textEdit->append("Winner 2 Chosen: Robot - " + QString::number(winner2));
         switch(winner2){
         case 1:{
-            ui->status1->setText("On Auto");
+            r1Status->setAccessibleText("On Auto");
             break;
         }
         case 2:{
-            ui->status2->setText("On Auto");
+            r2Status->setAccessibleText("On Auto");
             break;
         }
         case 3:{
-            ui->status3->setText("On Auto");
+            r3Status->setAccessibleText("On Auto");
             break;
         }
         }
@@ -357,30 +430,31 @@ void MainWindow::on_EStop_clicked()
     QByteArray data;
     data.append("ESTOP/" + QString::number(selection) + "/");
     sendMessage(data,port1);
+    ui->textEdit->append("Emergency Stop: Robot - " + selection);
     switch(selection){
     case 1:{
         if(stopped[0]){
-            ui->status1->setText("On Auto");
+            r1Status->setAccessibleText("On Auto");
         }else{
-            ui->status1->setText("Idle");
+            r1Status->setAccessibleText("Idle");
         }
         stopped[0] = !stopped[0];
         break;
     }
     case 2:{
         if(stopped[1]){
-            ui->status2->setText("On Auto");
+            r2Status->setAccessibleText("On Auto");
         }else{
-            ui->status2->setText("Idle");
+            r2Status->setAccessibleText("Idle");
         }
         stopped[1] = !stopped[1];
         break;
     }
     case 3:{
         if(stopped[2]){
-            ui->status3->setText("On Auto");
+            r3Status->setAccessibleText("On Auto");
         }else{
-            ui->status3->setText("Idle");
+            r3Status->setAccessibleText("Idle");
         }
         stopped[2] = !stopped[2];
         break;
@@ -397,27 +471,33 @@ void MainWindow::on_Control_clicked()
     switch(selection){
     case 1:{
         if(!manual[0]){
-            ui->status1->setText("On Tele.");
+            r1Status->setAccessibleText("On Tele.");
+            ui->textEdit->append("Switch to Manual: Robot - 1");
         }else{
-            ui->status1->setText("On Auto");
+            r1Status->setAccessibleText("On Auto");
+            ui->textEdit->append("Switch to Autonomous: Robot - 1");
         }
         manual[0] = !manual[0];
         break;
     }
     case 2:{
         if(!manual[1]){
-            ui->status2->setText("On Tele.");
+            r2Status->setAccessibleText("On Tele.");
+            ui->textEdit->append("Switch to Manual: Robot - 2");
         }else{
-            ui->status2->setText("On Auto");
+            r2Status->setAccessibleText("On Auto");
+            ui->textEdit->append("Switch to Autonomous: Robot - 2");
         }
         manual[1] = !manual[1];
         break;
     }
     case 3:{
         if(!manual[2]){
-            ui->status3->setText("On Tele.");
+            r3Status->setAccessibleText("On Tele.");
+            ui->textEdit->append("Switch to Manual: Robot - 3");
         }else{
-            ui->status3->setText("On Auto");
+            r3Status->setAccessibleText("On Auto");
+            ui->textEdit->append("Switch to Autonomous: Robot - 3");
         }
         manual[2] = !manual[2];
         break;
@@ -431,4 +511,17 @@ void MainWindow::on_complete_clicked()
     QByteArray data;
     data.append("COMPLETE/" + QString::number(selection) + "/");
     sendMessage(data,port1);
+}
+
+void MainWindow::on_startSim_clicked()
+{
+    QProcess *sim = new QProcess(this);
+    sim->startDetached("C:\\UDK\\UDK-2013-07\\USARRunMaps\\ExampleMap.bat");
+    //QThread::sleep(3);
+    qDebug()<<sim->errorString();
+}
+
+void MainWindow::on_robotTable_clicked(const QModelIndex &index)
+{
+    ui->rselect->setValue(index.row()+1);
 }

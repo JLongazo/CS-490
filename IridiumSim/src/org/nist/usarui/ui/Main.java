@@ -50,7 +50,7 @@ public class Main {
 		mainFrame.getContentPane().add(ui.getRoot(), BorderLayout.CENTER);
 		mainFrame.setSize(700, 480);
 		Utils.centerWindow(mainFrame);
-		mainFrame.setVisible(true);
+		//mainFrame.setVisible(true);
 		int port = 9001;
 		try {
 			program.connect("localhost");

@@ -6,7 +6,7 @@ TaskAllocator::TaskAllocator()
         bids[i] = 100;
     }
     bidCount = 0;
-    activeBots = 3;
+    activeBots = 0;
     currentTask = -1;
     qDebug() << bidCount;
 }
