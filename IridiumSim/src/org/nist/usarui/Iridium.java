@@ -351,7 +351,6 @@ public class Iridium implements IridiumConnector {
 						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
 					}
 				}
-        
 				break;
 			case "SWITCH":
 				if(id == Integer.parseInt(message[1]) && isConnected()){

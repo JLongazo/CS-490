@@ -5,7 +5,7 @@ class Objective
 {
 public:
     Objective(double x1 = 0, double y1 = 0, int rn = 1, int weight = 0);
-    void setCompleted(){completed = true;}
+    void setCompleted(bool set){completed = set;}
     bool getCompleted(){return completed;}
     bool getStatus(){return inProgress;}
     void setProgress(bool p){inProgress = p;}

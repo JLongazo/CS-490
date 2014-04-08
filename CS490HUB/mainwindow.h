@@ -10,6 +10,8 @@
 #include <QStandardItemModel>
 #include <QProcess>
 #include <QtNetwork/QUdpSocket>
+#include <QElapsedTimer>
+#include <QTimer>
 #include "taskallocator.h"
 
 #include <QKeyEvent>
@@ -37,8 +39,10 @@ public:
     virtual void keyReleaseEvent(QKeyEvent*);
     void updateMotion();
 
+
 public slots:
      void onWinnerFound(int winner, int winner2);
+     void missionComplete();
 
 private slots:
 
@@ -58,14 +62,20 @@ private slots:
 
     void on_robotTable_clicked(const QModelIndex &index);
 
+    void updateTimer();
+
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;
+    QElapsedTimer t;
+    QTimer timer;
     int winnerB;
     int replys;
     bool stopped[3];
     bool manual[3];
     bool aPressed, wPressed, sPressed, dPressed;
+    bool mStart;
+    qint64 mTime;
 //    int port2 = 2001;
 //    int port3 = 2002;
 //    int port4 = 2003;

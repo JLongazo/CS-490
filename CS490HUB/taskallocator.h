@@ -21,7 +21,7 @@ public:
     int currentTask;
     int activeBots;
 
-    void addBid(int index, double bid);
+    void addBid(int index, double bid, double strength);
     quint16 getWinner();
     void readTasks(QString file);
     void taskCompleted(int index);
@@ -30,13 +30,16 @@ public:
 
 private:
     double bids[MAX_BIDS];
+    double strengths[MAX_BIDS];
     int bidCount;
+    int completeTasks;
 
 
 signals:
     void tasksCollected();
     void taskAssigned(QString task);
     void winnerFound(int winner, int winner2);
+    void tasksComplete();
 };
 
 #endif // TASKALLOCATOR_H

@@ -32,6 +32,10 @@ QStandardItem *wStatus;
 
 bool waiting = false;
 bool world = false;
+bool saOn = false;
+bool taOn = false;
+bool aOn = false;
+QString taskFile = "tasks.txt";
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -47,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(socket, SIGNAL(readyRead()), this, SLOT(onMessageReceived()));
     connect(ta, SIGNAL(winnerFound(int,int)),this,SLOT(onWinnerFound(int,int)));
     connect(ta, SIGNAL(taskAssigned(QString)),this,SLOT(onTaskAssigned(QString)));
+    connect(ta, SIGNAL(tasksComplete()),this,SLOT(missionComplete()));
     for(int i = 0; i < 3; i++){
         manual[i] = false;
         stopped[i] = false;
@@ -84,6 +89,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->robotTable->setColumnWidth(0,30);
     ui->robotTable->setColumnWidth(1,50);
     ui->robotTable->horizontalHeader()->setStretchLastSection(true);
+    connect(&timer, SIGNAL(timeout()), this, SLOT(updateTimer()));
+    timer.start(10);
+    mStart = false;
     //ui->robotTable->resizeColumnsToContents();
 }
 
@@ -146,10 +154,11 @@ void MainWindow::updateMotion(){
 
     QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
 
-    ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
-
     buf.append(msg);
-    sendMessage(buf, port1);
+    if(saOn){
+        ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+        sendMessage(buf, port1);
+    }
 
 }
 
@@ -199,7 +208,7 @@ void MainWindow::parseMessage(QByteArray buf){
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
-        ta->addBid(message[1].toInt()-1,message[2].toDouble());
+        ta->addBid(message[1].toInt()-1,message[2].toDouble(),message[3].toDouble());
         //qDebug() << "Bid recieved: " + message[2];
         ui->textEdit->append("Bid Recieved: Robot - " + message[1]);
         break;
@@ -208,8 +217,8 @@ void MainWindow::parseMessage(QByteArray buf){
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
+        ui->textEdit->append("Task Completed: Task #" + message[1]);
         ta->taskCompleted(message[1].toInt());
-        ui->textEdit->append("Task Completed: Robot - " + message[1]);
         switch(message[2].toInt()){
         case 1:{
             //ui->status1->setText("Idle");
@@ -256,18 +265,19 @@ void MainWindow::parseMessage(QByteArray buf){
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
-        ui->textEdit->append("Teleoperation Request: Robot - " + message[1]);
+        qDebug() << "teleop";
+        ui->textEdit->append("Teleoperation Request: Robot - " + message[1] + " error: " + message[2]);
         switch(message[1].toInt()){
         case 1:{
-            r1Status->setAccessibleText("Req. Tele.");
+            r1Status->setText("Req. Tele.");
             break;
         }
         case 2:{
-            r2Status->setAccessibleText("Req. Tele.");
+            r2Status->setText("Req. Tele.");
             break;
         }
         case 3:{
-            r3Status->setAccessibleText("Req. Tele.");
+            r3Status->setText("Req. Tele.");
             break;
         }
         }
@@ -317,30 +327,39 @@ void MainWindow::on_initialize_clicked() // create button
                 iridium.append(" 40");
                 data.append("ROBOT/1/5.0/3.0/");
                 r1ID = new QStandardItem(QString::number(id));
+                r1ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r1ID);
                 r1Type = new QStandardItem("ROBOT");
+                r1Type->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 1, r1Type);
                 r1Status = new QStandardItem("Connected");
+                r1Status->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 2, r1Status);
                 break;
             case 2:
                 iridium.append(" 50");
                 data.append("ROBOT/2/5.0/-1.0/");
                 r2ID = new QStandardItem(QString::number(id));
+                r2ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r2ID);
                 r2Type = new QStandardItem("ROBOT");
+                r2Type->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 1, r2Type);
                 r2Status = new QStandardItem("Connected");
+                r2Status->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 2, r2Status);
                 break;
             case 3:
                 iridium.append(" 60");
                 data.append("ROBOT/3/5.0/-4.0/");
                 r3ID = new QStandardItem(QString::number(id));
+                r3ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r3ID);
                 r3Type = new QStandardItem("ROBOT");
+                r3Type->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 1, r3Type);
                 r3Status = new QStandardItem("Connected");
+                r3Status->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                  model->setItem(id-1, 2, r3Status);
                 break;
             }
@@ -352,14 +371,18 @@ void MainWindow::on_initialize_clicked() // create button
             id++;
             world = true;
             iridium.append(QString::number(id));
-            data.append("CONTROLLER/");
+            iridium.append(" 0");
+            data.append("CONTROLLER/" + QString::number(id) + "/" + taskFile + "/");
             irid->start(iridium);
             QThread::sleep(3);
             wID = new QStandardItem(QString::number(id));
+            wID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
             model->setItem(id-1, 0, wID);
             wType = new QStandardItem("WORLD");
+            wType->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
              model->setItem(id-1, 1, wType);
             wStatus = new QStandardItem("Connected");
+            wStatus->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
              model->setItem(id-1, 2, wStatus);
             sendMessage(data, port1);
         }
@@ -368,8 +391,29 @@ void MainWindow::on_initialize_clicked() // create button
 
 void MainWindow::on_Autnomous_clicked()
 {
-    qDebug() << "Beginning Task Allocation";
-    ta->readTasks("C:/Qt/CS490HUB/tasks.txt");
+    t.start();
+    mStart = true;
+    if(ui->saToggle->isChecked()){
+        saOn = true;
+    }
+    if(ui->taToggle->isChecked()){
+        taOn = true;
+    }
+    if(ui->autonomy->isChecked()){
+        aOn = true;
+    }else{
+        for(int i = 0; i < 3; i++){
+            manual[i] = true;
+            stopped[i] = true;
+        }
+    }
+    QByteArray data;
+    data.append("TEST/" + QString(saOn?"true":"false") + "/" + QString(taOn?"true":"false") + "/" + QString(aOn?"true":"false") + "/");
+    sendMessage(data,9001);
+    if(aOn){
+        qDebug() << "Beginning Task Allocation";
+        ta->readTasks("C:/Qt/CS490HUB/" + taskFile);
+    }
 }
 
 void MainWindow::onTaskAssigned(QString message){
@@ -387,15 +431,15 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     ui->textEdit->append("Winner Chosen: Robot - " + QString::number(winner));
     switch(winner){
     case 1:{
-        r1Status->setAccessibleText("On Auto");
+        r1Status->setText("On Auto");
         break;
     }
     case 2:{
-        r2Status->setAccessibleText("On Auto");
+        r2Status->setText("On Auto");
         break;
     }
     case 3:{
-        r3Status->setAccessibleText("On Auto");
+        r3Status->setText("On Auto");
         break;
     }
     }
@@ -406,15 +450,15 @@ void MainWindow::onWinnerFound(int winner, int winner2){
         ui->textEdit->append("Winner 2 Chosen: Robot - " + QString::number(winner2));
         switch(winner2){
         case 1:{
-            r1Status->setAccessibleText("On Auto");
+            r1Status->setText("On Auto");
             break;
         }
         case 2:{
-            r2Status->setAccessibleText("On Auto");
+            r2Status->setText("On Auto");
             break;
         }
         case 3:{
-            r3Status->setAccessibleText("On Auto");
+            r3Status->setText("On Auto");
             break;
         }
         }
@@ -434,27 +478,27 @@ void MainWindow::on_EStop_clicked()
     switch(selection){
     case 1:{
         if(stopped[0]){
-            r1Status->setAccessibleText("On Auto");
+            r1Status->setText("On Auto");
         }else{
-            r1Status->setAccessibleText("Idle");
+            r1Status->setText("Idle");
         }
         stopped[0] = !stopped[0];
         break;
     }
     case 2:{
         if(stopped[1]){
-            r2Status->setAccessibleText("On Auto");
+            r2Status->setText("On Auto");
         }else{
-            r2Status->setAccessibleText("Idle");
+            r2Status->setText("Idle");
         }
         stopped[1] = !stopped[1];
         break;
     }
     case 3:{
         if(stopped[2]){
-            r3Status->setAccessibleText("On Auto");
+            r3Status->setText("On Auto");
         }else{
-            r3Status->setAccessibleText("Idle");
+            r3Status->setText("Idle");
         }
         stopped[2] = !stopped[2];
         break;
@@ -471,10 +515,10 @@ void MainWindow::on_Control_clicked()
     switch(selection){
     case 1:{
         if(!manual[0]){
-            r1Status->setAccessibleText("On Tele.");
+            r1Status->setText("On Tele.");
             ui->textEdit->append("Switch to Manual: Robot - 1");
         }else{
-            r1Status->setAccessibleText("On Auto");
+            r1Status->setText("On Auto");
             ui->textEdit->append("Switch to Autonomous: Robot - 1");
         }
         manual[0] = !manual[0];
@@ -482,10 +526,10 @@ void MainWindow::on_Control_clicked()
     }
     case 2:{
         if(!manual[1]){
-            r2Status->setAccessibleText("On Tele.");
+            r2Status->setText("On Tele.");
             ui->textEdit->append("Switch to Manual: Robot - 2");
         }else{
-            r2Status->setAccessibleText("On Auto");
+            r2Status->setText("On Auto");
             ui->textEdit->append("Switch to Autonomous: Robot - 2");
         }
         manual[1] = !manual[1];
@@ -493,10 +537,10 @@ void MainWindow::on_Control_clicked()
     }
     case 3:{
         if(!manual[2]){
-            r3Status->setAccessibleText("On Tele.");
+            r3Status->setText("On Tele.");
             ui->textEdit->append("Switch to Manual: Robot - 3");
         }else{
-            r3Status->setAccessibleText("On Auto");
+            r3Status->setText("On Auto");
             ui->textEdit->append("Switch to Autonomous: Robot - 3");
         }
         manual[2] = !manual[2];
@@ -507,10 +551,14 @@ void MainWindow::on_Control_clicked()
 
 void MainWindow::on_complete_clicked()
 {
-    int selection = ui->rselect->value();
-    QByteArray data;
-    data.append("COMPLETE/" + QString::number(selection) + "/");
-    sendMessage(data,port1);
+    if(ui->autonomy->isChecked()){
+        int selection = ui->rselect->value();
+        QByteArray data;
+        data.append("COMPLETE/" + QString::number(selection) + "/");
+        sendMessage(data,port1);
+    }else{
+        missionComplete();
+    }
 }
 
 void MainWindow::on_startSim_clicked()
@@ -524,4 +572,36 @@ void MainWindow::on_startSim_clicked()
 void MainWindow::on_robotTable_clicked(const QModelIndex &index)
 {
     ui->rselect->setValue(index.row()+1);
+}
+
+void MainWindow::missionComplete(){
+    mTime = t.elapsed();
+    mStart = false;
+    ui->textEdit->append("Mission Complete");
+}
+
+void MainWindow::updateTimer(){
+    qint64 time = t.elapsed();
+    int seconds = time/1000;
+    time -= seconds*1000;
+    int minutes = seconds/60;
+    seconds -= minutes*60;
+    QString ms = QString::number(time);
+    QString s = QString::number(seconds);
+    QString m = QString::number(minutes);
+    if(ms.length()<2){
+        ms = "0" + ms;
+    }else{
+        ms = ms.left(2);
+    }
+    if(s.length() < 2){
+        s = "0" + s;
+    }
+    if(m.length() < 2){
+        m = "0" + m;
+    }
+    if(mStart){
+        ui->missionTime->setText(m + ":" + s + ":" + ms);
+        timer.start(10);
+    }
 }
