@@ -164,6 +164,9 @@ public class IridiumUI implements IridiumListener {
 	public int pushStrength;	
 	private boolean cNotify = false;	//used to check whether this robot has notified others that it is ready to perform task
 	private boolean bidStatus = false;	//used to determine whether or not this robot notified the hub that it can bid
+	public boolean saOn = false;
+	public int rNum;
+	public boolean autonomy = false;
 
 	//------------------------------
 	
@@ -1839,7 +1842,7 @@ public class IridiumUI implements IridiumListener {
 		setupMoveUI();
 		setupSetUI();
 		setupActUI();
-		setupGeoUI();
+		//setupGeoUI();
 		setupControlUI();
 		//grabJoystick();
 	}
@@ -2245,16 +2248,16 @@ public class IridiumUI implements IridiumListener {
 	//------------------------------------------------------------------------------------------------
 	
 	public void push(double x, double y, boolean p2){
-		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		SensorStatusHandler data = (SensorStatusHandler) handlers.get(5);
 		bidStatus = false;
 		if(!p2){
 			setCheck("pushing " + x + " " + y);
 			data.tx = x;
 			data.ty = y;
 			if(y < 0){
-				y += 3;
+				y += 2;
 			}else{
-				y -= 3;
+				y -= 2;
 			}
 			data.push = true;
 			goTo(x,y);
@@ -2272,7 +2275,7 @@ public class IridiumUI implements IridiumListener {
 	
 	
 	public void goTo(double x, double y){
-		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		SensorStatusHandler data = (SensorStatusHandler) handlers.get(5);
 		//setCheck("going to " + x + " " + y);
 		data.going = true;
 		data.gx = x;
@@ -2287,7 +2290,7 @@ public class IridiumUI implements IridiumListener {
 		check.setText(line);
 	}
 	public double getBid(double x, double y) {
-		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(6);
+		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(5);
 		return Math.sqrt(Math.pow(x + sensor.currentX, 2) + Math.pow(y + sensor.currentY, 2));
 	}
 	
@@ -2300,7 +2303,9 @@ public class IridiumUI implements IridiumListener {
 			e.printStackTrace();
 		}
 		sendMessage("DRIVE {Left 0} {Right 0}");
-		state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
+		if(rNum == 1){
+			state.sendHubMessage("N/" + state.getTN() + "/" + state.getId());
+		}
 		state.notWorking();
 		nearComp = false;
 		cNotify = false;
@@ -2308,25 +2313,26 @@ public class IridiumUI implements IridiumListener {
 	}
 	
 	public void forceComplete(){
-		SensorStatusHandler data = (SensorStatusHandler) handlers.get(6);
+		SensorStatusHandler data = (SensorStatusHandler) handlers.get(5);
 		data.forceComplete();
 	}
 	public void updateHUB(double x, double y){
 		state.sendHubMessage("D/" + state.getId() + "/" + x + "/" + y + "/" + state.getTN() + "/");
 	}
 	
-	public void requestAid(){
+	public void requestAid(String error){
 		sendMessage("DRIVE {Left 0} {Right 0}");
-		state.sendHubMessage("H/"+ state.getId());
+		state.sendHubMessage("H/"+ state.getId() + "/" + error + "/");
 		manual = true;
 	}
 	
 	public void switchControlMode(){
-		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(6);
-		if(manual){
-			manual = false;
+		SensorStatusHandler sensor = (SensorStatusHandler) handlers.get(5);
+		if(sensor.helpPending){
 			sensor.tCheck = false;
 			sensor.helpPending = false;
+		}else if(manual){
+			manual = false;
 		}else{
 			manual = true;
 			sendMessage("DRIVE {Left 0} {Right 0}");
@@ -2345,6 +2351,10 @@ public class IridiumUI implements IridiumListener {
 		if(!cNotify){
 			state.sendHubMessage("F/" + state.getTN() +"/" + state.getId() +"/");
 			cNotify = true;
+			if(cReady){
+				nearComp = true;
+				canBid();
+			}
 		}
 	}
 	

@@ -234,10 +234,11 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				if( dist < 1){
 					close = true;
 				}
-				if(aCount > 15){
-					ui.requestAid();
+				if(aCount > 8 && ui.saOn){
+					ui.requestAid("Stuck");
+					aCount = 0;
 				}
-				if(range < 1.5 && push && going && !close && !ui.manual){
+				if(range < 1 && push && going && !close && !ui.manual){
 					avoiding = true;
 					if(right){
 						ui.sendMessage("DRIVE {Left 2} {Right -2}");
@@ -245,12 +246,12 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 						ui.sendMessage("DRIVE {Left -2} {Right 2}");
 					}
 					aCount++;
-					/*try {
-						Thread.sleep(300);
+					try {
+						Thread.sleep(500);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}*/
+					}
 				}
 			}
 			// Odometer
@@ -290,11 +291,12 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 					tTime = ((Math.round(dist) * 20000) + 20000 + sTime);
 					tCheck = true;
 				}
-				if((System.currentTimeMillis() > tTime) && going){
+				if((System.currentTimeMillis() > tTime) && going && ui.saOn){
 					if(!helpPending){
-						ui.requestAid();
+						ui.requestAid("Timeout");
 					}
 					ui.setCheck("" + (tTime - sTime));
+					tCheck = false;
 					helpPending = true;
 				}
 				if(going && !avoiding && !ui.stopped && !ui.manual && !helpPending){
@@ -320,7 +322,7 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 							}
 						}
 					}else{
-						if(!(direction + .03 > gd && direction - .03 < gd)){
+						if(!(direction + .1 > gd && direction - .1 < gd)){
 							if(right){
 								lSpeed = .2;
 								rSpeed = -.2;
@@ -362,8 +364,8 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 							lSpeed *= 1.5;
 							rSpeed *= 1.5;
 						}else if(dist < 1 && push){
-							lSpeed*=.7;
-							rSpeed*=.7;
+							//lSpeed*=.7;
+							//rSpeed*=.7;
 						}
 						ui.sendMessage("DRIVE {Left " + Double.toString(lSpeed) + "} {Right " + Double.toString(rSpeed) +"}");
 					}

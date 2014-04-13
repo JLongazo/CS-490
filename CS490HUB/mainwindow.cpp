@@ -156,7 +156,7 @@ void MainWindow::updateMotion(){
 
     buf.append(msg);
     if(saOn){
-        ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
+        //ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
         sendMessage(buf, port1);
     }
 
@@ -203,6 +203,7 @@ bool MainWindow::onMessageReceived(){
 void MainWindow::parseMessage(QByteArray buf){
     const char *m;
     m = buf.data();
+    QString time = " " + ui->missionTime->text();
     switch(m[0]){
     case 'B':{
         QString line(buf);
@@ -210,14 +211,14 @@ void MainWindow::parseMessage(QByteArray buf){
         QStringList message = line.split("/");
         ta->addBid(message[1].toInt()-1,message[2].toDouble(),message[3].toDouble());
         //qDebug() << "Bid recieved: " + message[2];
-        ui->textEdit->append("Bid Recieved: Robot - " + message[1]);
+        //ui->textEdit->append("Bid Recieved: Robot - " + message[1]);
         break;
     }
     case 'N':{
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
-        ui->textEdit->append("Task Completed: Task #" + message[1]);
+        ui->textEdit->append("Task Completed: Task #" + message[1] + " " + ui->missionTime->text());
         ta->taskCompleted(message[1].toInt());
         switch(message[2].toInt()){
         case 1:{
@@ -255,7 +256,9 @@ void MainWindow::parseMessage(QByteArray buf){
     case 'G':{
         waiting = false;
         replys++;
-        ui->textEdit->append("Winner Accepts");
+        //ui->textEdit->append("Winner Accepts");
+        int tasknum = ta->currentTask;
+         ui->textEdit->append("Task# " + QString::number(tasknum) + " Assigned" + time);
         if(ta->activeBots > 0 && replys == ta->tasks[ta->currentTask].getRNum()){
             ta->assignNextTask();
         }
@@ -266,18 +269,18 @@ void MainWindow::parseMessage(QByteArray buf){
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
         qDebug() << "teleop";
-        ui->textEdit->append("Teleoperation Request: Robot - " + message[1] + " error: " + message[2]);
+        ui->textEdit->append("Teleoperation Request: Robot " + message[1] + " error: " + message[2] + " " + ui->missionTime->text());
         switch(message[1].toInt()){
         case 1:{
-            r1Status->setText("Req. Tele.");
+            r1Status->setText("Requires Teleoperation");
             break;
         }
         case 2:{
-            r2Status->setText("Req. Tele.");
+            r2Status->setText("Requires Teleoperation.");
             break;
         }
         case 3:{
-            r3Status->setText("Req. Tele.");
+            r3Status->setText("Requires Teleoperation");
             break;
         }
         }
@@ -420,7 +423,8 @@ void MainWindow::onTaskAssigned(QString message){
     QByteArray m;
     m.append(message);
     sendMessage(m,9001);
-    ui->textEdit->append("New Task Assigned, Awaiting Bids");
+    QString time = " " + ui->missionTime->text();
+
 }
 
 void MainWindow::onWinnerFound(int winner, int winner2){
@@ -428,7 +432,7 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     QByteArray data;
     replys = 0;
     data.append("WINNER/" + QString::number(winner) + "/1/");
-    ui->textEdit->append("Winner Chosen: Robot - " + QString::number(winner));
+    //ui->textEdit->append("Winner Chosen: Robot - " + QString::number(winner));
     switch(winner){
     case 1:{
         r1Status->setText("On Auto");
@@ -447,7 +451,7 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     if(ta->tasks[ta->currentTask].getRNum() == 2){
         data = NULL;
         data.append("WINNER/" + QString::number(winner2) + "/2/");
-        ui->textEdit->append("Winner 2 Chosen: Robot - " + QString::number(winner2));
+        //ui->textEdit->append("Winner 2 Chosen: Robot - " + QString::number(winner2));
         switch(winner2){
         case 1:{
             r1Status->setText("On Auto");
@@ -474,7 +478,8 @@ void MainWindow::on_EStop_clicked()
     QByteArray data;
     data.append("ESTOP/" + QString::number(selection) + "/");
     sendMessage(data,port1);
-    ui->textEdit->append("Emergency Stop: Robot - " + selection);
+    QString time = " " + ui->missionTime->text();
+    ui->textEdit->append("Emergency Stop: Robot " + selection + time);
     switch(selection){
     case 1:{
         if(stopped[0]){
@@ -512,36 +517,37 @@ void MainWindow::on_Control_clicked()
     QByteArray data;
     data.append("SWITCH/" + QString::number(selection) + "/");
     sendMessage(data,port1);
+    QString time = " " + ui->missionTime->text();
     switch(selection){
     case 1:{
         if(!manual[0]){
-            r1Status->setText("On Tele.");
-            ui->textEdit->append("Switch to Manual: Robot - 1");
+            r1Status->setText("On Teleoperation");
+            ui->textEdit->append("Switch to Manual: Robot 1" + time);
         }else{
             r1Status->setText("On Auto");
-            ui->textEdit->append("Switch to Autonomous: Robot - 1");
+            ui->textEdit->append("Switch to Autonomous: Robot 1" + time);
         }
         manual[0] = !manual[0];
         break;
     }
     case 2:{
         if(!manual[1]){
-            r2Status->setText("On Tele.");
-            ui->textEdit->append("Switch to Manual: Robot - 2");
+            r2Status->setText("On Teleoperation");
+            ui->textEdit->append("Switch to Manual: Robot 2" + time);
         }else{
             r2Status->setText("On Auto");
-            ui->textEdit->append("Switch to Autonomous: Robot - 2");
+            ui->textEdit->append("Switch to Autonomous: Robot 2" + time);
         }
         manual[1] = !manual[1];
         break;
     }
     case 3:{
         if(!manual[2]){
-            r3Status->setText("On Tele.");
-            ui->textEdit->append("Switch to Manual: Robot - 3");
+            r3Status->setText("On Teleoperation");
+            ui->textEdit->append("Switch to Manual: Robot 3" + time);
         }else{
             r3Status->setText("On Auto");
-            ui->textEdit->append("Switch to Autonomous: Robot - 3");
+            ui->textEdit->append("Switch to Autonomous: Robot 3" + time);
         }
         manual[2] = !manual[2];
         break;
@@ -577,7 +583,8 @@ void MainWindow::on_robotTable_clicked(const QModelIndex &index)
 void MainWindow::missionComplete(){
     mTime = t.elapsed();
     mStart = false;
-    ui->textEdit->append("Mission Complete");
+    QString time = " " + ui->missionTime->text();
+    ui->textEdit->append("Mission Complete" + time);
 }
 
 void MainWindow::updateTimer(){

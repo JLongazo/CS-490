@@ -74,8 +74,9 @@ public final class Errors implements UncaughtExceptionHandler {
 		try {
 			// Prompt to continue?
 			if (JOptionPane.showOptionDialog(null, msg, "Iridium", JOptionPane.DEFAULT_OPTION,
-				JOptionPane.ERROR_MESSAGE, null, RESUME_OPTIONS, "Exit") != 0)
+				JOptionPane.ERROR_MESSAGE, null, RESUME_OPTIONS, "Exit") != 0){
 				System.exit(1);
+			}
 			// Create detailed message
 			message = new StringWriter(512);
 			out = new PrintWriter(message);

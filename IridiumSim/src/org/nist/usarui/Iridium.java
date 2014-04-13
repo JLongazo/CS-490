@@ -36,11 +36,14 @@ public class Iridium implements IridiumConnector {
 	public double tx;
 	public double ty;
 	public double tw;
+	public double backW; //backlogged task weight
 	private int taskNum;
+	private int backTask; //backlogged task number
+	private int backR;  //backlogged robot number
 	private boolean working = false;  //performing task
 	private boolean waiting = false;	//has task backlogged
 	private boolean controller = false;	//is world controller
-	private int rNum;
+	private int totalRNum;
 	
 	
 
@@ -280,15 +283,16 @@ public class Iridium implements IridiumConnector {
 			switch(message[0]){
 			case "CONTROLLER":
 				try {
-					if(id == 4){
+					if(id == Integer.parseInt(message[1])){
 						ui.setCheck(line);
 						controller = true;
 						sendMessage("INIT {ClassName USARBotAPI.WorldController} {Location -1.2700, -0.9400, 1.4700} {Rotation 0.0000, 0.0000, 0.0000}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 4.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 3.0000, 1.0000, 1.0000} {Physics RigidBody}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 5.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
-						sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						createBoxes(message[2]);
+						//sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate1} {Location 1.0000, 4.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 3.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						//sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate2} {Location -4.0000, 5.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						//sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate3} {Location 2.0000, -6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						//sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate4} {Location 7.0000, 6.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
+						//sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name crate5} {Location -5.0000, -2.0000, 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale 1.0000, 1.0000, 1.0000} {Physics RigidBody}");
 					}
 				}catch (IOException e){
 					ui.setCheck("error1 " + message[0]);
@@ -307,27 +311,43 @@ public class Iridium implements IridiumConnector {
 					ui.setCheck("error2 " + message[0]);
 				}
 				break;
+			case "TEST":
+				if(Boolean.parseBoolean(message[1])){
+					ui.saOn = true;
+				}
+				if(Boolean.parseBoolean(message[2])){
+					ui.autonomy = true;
+				}else{
+					ui.manual = true;
+				}
+				break;
 			case "TASK":
 				//ui.setCheck(line);
 				if((!working || ui.nearComp) && !controller && !waiting){
 					tx = Double.parseDouble(message[2]);
 					ty = Double.parseDouble(message[3]);
-					rNum = Integer.parseInt(message[4]);
+					totalRNum = Integer.parseInt(message[4]);
 					tw = Integer.parseInt(message[5]);
-					taskNum = Integer.parseInt(message[1]);
+					if(working){
+						backTask = Integer.parseInt(message[1]);
+					}else{
+						taskNum = Integer.parseInt(message[1]);
+					}
 					double bid = ui.getBid(tx, ty);
-					sendHubMessage("B/"+ Integer.toString(id) + "/" + Double.toString(bid) + "/");
+					sendHubMessage("B/"+ Integer.toString(id) + "/" + Double.toString(bid) + "/" + ui.pushStrength + "/");
 				}
 				break;
 			case "WINNER":
 				//ui.setCheck(line);
 				if(id == Integer.parseInt(message[1]) && isConnected()){
 					sendHubMessage("G/");
+					int r = Integer.parseInt(message[2]);
 					if(working){
 						waiting = true;
+						backR = r;
 					}else{
-						if(rNum == 2){
-							int r = Integer.parseInt(message[2]);
+						ui.rNum = r;
+						if(totalRNum == 2){
 							ui.coordinate = true;
 							if(r == 1){
 								tx -= 1.5;
@@ -335,7 +355,9 @@ public class Iridium implements IridiumConnector {
 								tx += 1.5;
 							}
 						}
-						ui.push(tx, ty, false);
+						if(ui.autonomy){
+							ui.push(tx, ty, false);
+						}
 						working = true;
 					}
 					
@@ -385,6 +407,36 @@ public class Iridium implements IridiumConnector {
 				//ui.setCheck("error3");
 			}
 		}
+
+		private void createBoxes(String file) {
+			BufferedReader reader;
+			file = "C:/Qt/CS490HUB/" + file;
+			try {
+				reader = new BufferedReader(new FileReader(file));
+				String line = null;
+				int lNum = 1;
+				while ((line = reader.readLine()) != null) {
+				    String info[] = line.split(",");
+				    double x = Double.parseDouble(info[0]);
+				    double y = Double.parseDouble(info[1]);
+				    double size = Double.parseDouble(info[2]);
+				    if(size == 2){
+				    	size = 3;
+				    }
+				    String name = "crate" + lNum;
+				    sendMessage("CONTROL {Type Create} {ClassName WCCrate} {Name " + name + "} {Location " + x + ", " + y + ", 0.0000} {Rotation 0.0000, 0.0000, 0.0000} {Scale " + size + ", 1.0000, 1.0000} {Physics RigidBody}");
+				    lNum++;
+				}
+				reader.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				System.exit(0);
+			} catch (IOException e){
+				e.printStackTrace();
+				System.exit(0);
+			}
+			
+		}
 	}
 	
 	private class Timeout implements Runnable{
@@ -415,8 +467,11 @@ public class Iridium implements IridiumConnector {
 	public void notWorking(){
 		working = false;
 		if(waiting){
+			ui.rNum = backR;
+			taskNum = backTask;
 			ui.push(tx, ty, false);
 			working = true;
+			waiting = false;
 		}
 	}
 }

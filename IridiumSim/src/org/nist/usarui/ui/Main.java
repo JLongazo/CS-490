@@ -33,6 +33,7 @@ public class Main {
 		final Image icon16 = Utils.loadImage("images/icon16.png").getImage();
 		final Image icon32 = Utils.loadImage("images/icon32.png").getImage();
 		final Image icon48 = Utils.loadImage("images/icon48.png").getImage();
+
 		final JFrame mainFrame = new JFrame("Iridium" + args[0]);
 		try {
 			mainFrame.setIconImages(Arrays.asList(icon16, icon32, icon48));
@@ -45,12 +46,13 @@ public class Main {
 				ui.exit();
 			}
 		});
-		mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		mainFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		mainFrame.setResizable(true);
 		mainFrame.getContentPane().add(ui.getRoot(), BorderLayout.CENTER);
 		mainFrame.setSize(700, 480);
 		Utils.centerWindow(mainFrame);
 		mainFrame.setVisible(true);
+
 		int port = 9001;
 		try {
 			program.connect("localhost");
