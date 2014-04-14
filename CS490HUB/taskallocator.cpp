@@ -44,6 +44,7 @@ void TaskAllocator::assignNextTask(){
 void TaskAllocator::readTasks(QString filename){
     QFile file(filename);
     int taskNum = 0;
+    completeTasks = 0;
     if(file.open(QIODevice::ReadOnly)){
         QTextStream in(&file);
         while(!in.atEnd()){
@@ -61,6 +62,7 @@ void TaskAllocator::readTasks(QString filename){
         }
         file.close();
         taskCount = taskNum;
+        currentTask = -1;
         qDebug() << taskCount;
         assignNextTask();
     }else{

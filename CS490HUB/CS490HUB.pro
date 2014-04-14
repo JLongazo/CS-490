@@ -15,13 +15,11 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     objective.cpp \
-    taskallocator.cpp \
-    robot.cpp
+    taskallocator.cpp
 
 HEADERS  += mainwindow.h \
     objective.h \
     taskallocator.h \
-    robot.h \
     readerthread.h
 
 FORMS    += mainwindow.ui

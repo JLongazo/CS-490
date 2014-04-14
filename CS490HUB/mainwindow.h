@@ -64,6 +64,8 @@ private slots:
 
     void updateTimer();
 
+    void on_reset_clicked();
+
 private:
     Ui::MainWindow *ui;
     QUdpSocket* socket;

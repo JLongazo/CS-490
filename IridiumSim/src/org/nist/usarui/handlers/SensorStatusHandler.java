@@ -238,20 +238,22 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 					ui.requestAid("Stuck");
 					aCount = 0;
 				}
-				if(range < 1 && push && going && !close && !ui.manual){
+				if(range < .7 && push && going && !close && !ui.manual){
 					avoiding = true;
 					if(right){
-						ui.sendMessage("DRIVE {Left 2} {Right -2}");
+						ui.sendMessage("DRIVE {Left 1} {Right -1}");
 					}else {
-						ui.sendMessage("DRIVE {Left -2} {Right 2}");
+						ui.sendMessage("DRIVE {Left -1} {Right 1}");
 					}
 					aCount++;
+					/*
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
+					*/
 				}
 			}
 			// Odometer

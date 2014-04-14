@@ -2,13 +2,6 @@
 #include "ui_mainwindow.h"
 
 
-//QTcpSocket socket2;
-//QTcpSocket socket3;
-//QTcpSocket socket4;
-//Robot r1;
-//Robot r2;
-//Robot r3;
-//Robot robots[] = {r1,r2,r3};
 
 quint16 port1 = 9001;
 
@@ -36,6 +29,7 @@ bool saOn = false;
 bool taOn = false;
 bool aOn = false;
 QString taskFile = "tasks.txt";
+QProcess *processes[10];
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -258,7 +252,9 @@ void MainWindow::parseMessage(QByteArray buf){
         replys++;
         //ui->textEdit->append("Winner Accepts");
         int tasknum = ta->currentTask;
-         ui->textEdit->append("Task# " + QString::number(tasknum) + " Assigned" + time);
+        if(replys == ta->tasks[ta->currentTask].getRNum()){
+            ui->textEdit->append("Task #" + QString::number(tasknum) + " Assigned" + time);
+        }
         if(ta->activeBots > 0 && replys == ta->tasks[ta->currentTask].getRNum()){
             ta->assignNextTask();
         }
@@ -317,9 +313,9 @@ void MainWindow::on_initialize_clicked() // create button
         QString iridium;
         //QStringList args;
         iridium.append("java -jar C:\\Qt\\CS490HUB\\IridiumSim.jar ");
-        QProcess *irid = new QProcess(this);
+        id++;
+        processes[id] = new QProcess(this);
         if(ui->robotSel->isChecked() && ta->activeBots < 3){
-            id++;
             if(id > 1){
                 ui->rselect->setMaximum(id);
             }
@@ -328,7 +324,7 @@ void MainWindow::on_initialize_clicked() // create button
             switch(ta->activeBots){
             case 1:
                 iridium.append(" 40");
-                data.append("ROBOT/1/5.0/3.0/");
+                data.append("ROBOT/"+ QString::number(id) + "/5.0/3.0/");
                 r1ID = new QStandardItem(QString::number(id));
                 r1ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r1ID);
@@ -341,7 +337,7 @@ void MainWindow::on_initialize_clicked() // create button
                 break;
             case 2:
                 iridium.append(" 50");
-                data.append("ROBOT/2/5.0/-1.0/");
+                data.append("ROBOT/"+ QString::number(id) + "/5.0/-1.0/");
                 r2ID = new QStandardItem(QString::number(id));
                 r2ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r2ID);
@@ -354,7 +350,7 @@ void MainWindow::on_initialize_clicked() // create button
                 break;
             case 3:
                 iridium.append(" 60");
-                data.append("ROBOT/3/5.0/-4.0/");
+                data.append("ROBOT/"+ QString::number(id) + "/5.0/-4.0/");
                 r3ID = new QStandardItem(QString::number(id));
                 r3ID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
                 model->setItem(id-1, 0, r3ID);
@@ -366,52 +362,56 @@ void MainWindow::on_initialize_clicked() // create button
                  model->setItem(id-1, 2, r3Status);
                 break;
             }
-            irid->start(iridium);
-            qDebug()<<irid->errorString();
-            QThread::sleep(3);
+            processes[id]->start(iridium);
+            qDebug()<<processes[id]->errorString();
+            QThread::sleep(4);
             sendMessage(data, port1);
         } else if(ui->worldSel->isChecked() && !world){
-            id++;
             world = true;
             iridium.append(QString::number(id));
             iridium.append(" 0");
             data.append("CONTROLLER/" + QString::number(id) + "/" + taskFile + "/");
-            irid->start(iridium);
+            processes[id]->start(iridium);
             QThread::sleep(3);
             wID = new QStandardItem(QString::number(id));
             wID->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
             model->setItem(id-1, 0, wID);
             wType = new QStandardItem("WORLD");
             wType->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-             model->setItem(id-1, 1, wType);
+            model->setItem(id-1, 1, wType);
             wStatus = new QStandardItem("Connected");
             wStatus->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-             model->setItem(id-1, 2, wStatus);
+            model->setItem(id-1, 2, wStatus);
             sendMessage(data, port1);
+        } else {
+            delete processes[id];
+            id--;
         }
     }
 }
 
 void MainWindow::on_Autnomous_clicked()
 {
-    t.start();
+    t.restart();
+    timer.start(10);
     mStart = true;
     if(ui->saToggle->isChecked()){
         saOn = true;
     }
-    if(ui->taToggle->isChecked()){
-        taOn = true;
+    else{
+        saOn = false;
     }
     if(ui->autonomy->isChecked()){
         aOn = true;
     }else{
+        aOn = false;
         for(int i = 0; i < 3; i++){
             manual[i] = true;
             stopped[i] = true;
         }
     }
     QByteArray data;
-    data.append("TEST/" + QString(saOn?"true":"false") + "/" + QString(taOn?"true":"false") + "/" + QString(aOn?"true":"false") + "/");
+    data.append("TEST/" + QString(saOn?"true":"false") + "/" + QString(aOn?"true":"false") + "/");
     sendMessage(data,9001);
     if(aOn){
         qDebug() << "Beginning Task Allocation";
@@ -423,7 +423,7 @@ void MainWindow::onTaskAssigned(QString message){
     QByteArray m;
     m.append(message);
     sendMessage(m,9001);
-    QString time = " " + ui->missionTime->text();
+    //QString time = " " + ui->missionTime->text();
 
 }
 
@@ -611,4 +611,28 @@ void MainWindow::updateTimer(){
         ui->missionTime->setText(m + ":" + s + ":" + ms);
         timer.start(10);
     }
+}
+
+void MainWindow::on_reset_clicked()
+{
+    ui->textEdit->setText("");
+    ui->missionTime->setText("00:00:00");
+    model->clear();
+    QStringList hHeader;
+    hHeader.append("ID");
+    hHeader.append("TYPE");
+    hHeader.append("STATUS");
+    model->setHorizontalHeaderLabels(hHeader);
+    ui->robotTable->setColumnWidth(0,30);
+    ui->robotTable->setColumnWidth(1,50);
+    ui->robotTable->horizontalHeader()->setStretchLastSection(true);
+    qDebug() << "table cleared";
+    for(int i = 1; i <= id; i++){
+        //processes[i]->close();
+        delete processes[i];
+    }
+    id = 0;
+    world = false;
+    ta->activeBots = 0;
+    timer.stop();
 }
