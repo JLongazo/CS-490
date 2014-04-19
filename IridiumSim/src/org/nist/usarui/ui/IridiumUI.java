@@ -2317,13 +2317,13 @@ public class IridiumUI implements IridiumListener {
 		data.forceComplete();
 	}
 	public void updateHUB(double x, double y){
-		state.sendHubMessage("D/" + state.getId() + "/" + x + "/" + y + "/" + state.getTN() + "/");
+		state.sendHubMessage("I/" + state.getId() + "/" + x + "/" + y + "/" + state.getTN() + "/");
 	}
 	
 	public void requestAid(String error){
 		sendMessage("DRIVE {Left 0} {Right 0}");
 		state.sendHubMessage("H/"+ state.getId() + "/" + error + "/");
-		manual = true;
+		//manual = true;
 	}
 	
 	public void switchControlMode(){
@@ -2331,6 +2331,7 @@ public class IridiumUI implements IridiumListener {
 		if(sensor.helpPending){
 			sensor.tCheck = false;
 			sensor.helpPending = false;
+			manual = true;
 		}else if(manual){
 			manual = false;
 		}else{

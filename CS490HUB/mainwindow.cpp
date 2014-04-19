@@ -141,15 +141,15 @@ void MainWindow::updateMotion(){
     QByteArray buf;
     double right = 0, left = 0;
 
-    if(wPressed){right += 0.4; left += 0.4;}
-    if(aPressed){right += 0.4; left -= 0.4;}
-    if(sPressed){right -= 0.4; left -= 0.4;}
-    if(dPressed){right -= 0.4; left += 0.4;}
+    if(wPressed){right += 0.3; left += 0.3;}
+    if(aPressed){right += 0.3; left -= 0.3;}
+    if(sPressed){right -= 0.3; left -= 0.3;}
+    if(dPressed){right -= 0.3; left += 0.3;}
 
     QString msg = "DRIVE/" + QString::number(ui->rselect->value()) + "/" + QString::number(right) + "/" + QString::number(left) + "/";
 
     buf.append(msg);
-    if(saOn){
+    if(saOn || !aOn){
         //ui->textEdit->append("Robot 1: Drive right: " + QString::number(right) + " | left: " + QString::number(left));
         sendMessage(buf, port1);
     }
@@ -203,7 +203,9 @@ void MainWindow::parseMessage(QByteArray buf){
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
-        ta->addBid(message[1].toInt()-1,message[2].toDouble(),message[3].toDouble());
+        if(!ta->tasks[ta->currentTask].getCompleted()){
+            ta->addBid(message[1].toInt()-1,message[2].toDouble(),message[3].toDouble());
+        }
         //qDebug() << "Bid recieved: " + message[2];
         //ui->textEdit->append("Bid Recieved: Robot - " + message[1]);
         break;
@@ -234,15 +236,13 @@ void MainWindow::parseMessage(QByteArray buf){
         ta->activeBots++;
         break;
     }
-    case 'D':{
+    case 'I':{
         QString line(buf);
         line = line.right(line.length() - 1);
         QStringList message = line.split("/");
         if(message[1].toInt() == ui->rselect->value()){
-            double x = message[2].toDouble();
-            double y = message[3].toDouble();
             int task = message[4].toInt();
-            ui->rStatus->setText("R:" + QString::number(x) + ", " + QString::number(y) + "; T:" +
+            ui->rStatus->setText("R:" + message[2] + ", " + message[3] + "; T:" +
                                  QString::number(ta->tasks[task].getX()) + ", " + QString::number(ta->tasks[task].getY()));
         }
         break;
@@ -403,12 +403,17 @@ void MainWindow::on_Autnomous_clicked()
     }
     if(ui->autonomy->isChecked()){
         aOn = true;
+        r1Status->setText("On Auto");
+        r2Status->setText("On Auto");
+        r3Status->setText("On Auto");
     }else{
         aOn = false;
         for(int i = 0; i < 3; i++){
             manual[i] = true;
-            stopped[i] = true;
         }
+        r1Status->setText("On Teleoperation");
+        r2Status->setText("On Teleoperation");
+        r3Status->setText("On Teleoperation");
     }
     QByteArray data;
     data.append("TEST/" + QString(saOn?"true":"false") + "/" + QString(aOn?"true":"false") + "/");
@@ -433,39 +438,11 @@ void MainWindow::onWinnerFound(int winner, int winner2){
     replys = 0;
     data.append("WINNER/" + QString::number(winner) + "/1/");
     //ui->textEdit->append("Winner Chosen: Robot - " + QString::number(winner));
-    switch(winner){
-    case 1:{
-        r1Status->setText("On Auto");
-        break;
-    }
-    case 2:{
-        r2Status->setText("On Auto");
-        break;
-    }
-    case 3:{
-        r3Status->setText("On Auto");
-        break;
-    }
-    }
     sendMessage(data,port1);
     if(ta->tasks[ta->currentTask].getRNum() == 2){
         data = NULL;
         data.append("WINNER/" + QString::number(winner2) + "/2/");
         //ui->textEdit->append("Winner 2 Chosen: Robot - " + QString::number(winner2));
-        switch(winner2){
-        case 1:{
-            r1Status->setText("On Auto");
-            break;
-        }
-        case 2:{
-            r2Status->setText("On Auto");
-            break;
-        }
-        case 3:{
-            r3Status->setText("On Auto");
-            break;
-        }
-        }
 
         sendMessage(data,port1);
     }
@@ -615,6 +592,9 @@ void MainWindow::updateTimer(){
 
 void MainWindow::on_reset_clicked()
 {
+    if(mStart){
+        missionComplete();
+    }
     ui->textEdit->setText("");
     ui->missionTime->setText("00:00:00");
     model->clear();
@@ -633,6 +613,10 @@ void MainWindow::on_reset_clicked()
     }
     id = 0;
     world = false;
+    saOn = false;
+    ui->saToggle->setChecked(false);
+    aOn = false;
+    ui->autonomy->setChecked(false);
     ta->activeBots = 0;
     timer.stop();
 }

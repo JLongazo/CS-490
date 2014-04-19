@@ -220,12 +220,12 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				String rf[] = test.split(",");
 				//value = Utils.asHTML(floatString(test, false));
 				double min = 8;
-				int index = 0;
+				//int index = 0;
 				for(int i = 0; i < rf.length; i++){
 					double check = Double.parseDouble(rf[i]);
 					if(check < min){
 						min = check;
-						index = i;
+						//index = i;
 					}
 				}
 				range = min;
@@ -234,26 +234,32 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				if( dist < 1){
 					close = true;
 				}
-				if(aCount > 8 && ui.saOn){
+				if(aCount > 13 && ui.saOn && going && !helpPending){
 					ui.requestAid("Stuck");
+					ui.setCheck("" + aCount);
 					aCount = 0;
 				}
-				if(range < .7 && push && going && !close && !ui.manual){
+				if(range < .7 && push && going && !close && !ui.manual && !helpPending && !avoiding){
 					avoiding = true;
 					if(right){
 						ui.sendMessage("DRIVE {Left 1} {Right -1}");
+						aCount++;
 					}else {
 						ui.sendMessage("DRIVE {Left -1} {Right 1}");
+						aCount++;
 					}
-					aCount++;
-					/*
+					
 					try {
-						Thread.sleep(500);
+						Thread.sleep(300);
+						ui.sendMessage("DRIVE {Left 0} {Right 0}");
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					*/
+				}
+				if(range > 2 && ui.nearComp && going && !ui.manual && !helpPending && !avoiding && ui.saOn){
+					ui.requestAid("Missed Box");
+					helpPending = true;
 				}
 			}
 			// Odometer
@@ -266,7 +272,7 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 					"), <b>Velocity</b> (" + floatString(packet.getParam("Vel"), deg) + ")");
 			// GroundTruth, INS
 			test = packet.getParam("Location");
-			if (test != null){
+			if(test != null){
 				String check[] = test.split(",");
 				String check2[] = packet.getParam("Orientation").split(",");
 				currentX = Double.parseDouble(check[0]);
@@ -290,10 +296,10 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 				}
 				if(!tCheck && going){
 					sTime = System.currentTimeMillis();
-					tTime = ((Math.round(dist) * 20000) + 20000 + sTime);
+					tTime = ((Math.round(dist) * 10000) + sTime);
 					tCheck = true;
 				}
-				if((System.currentTimeMillis() > tTime) && going && ui.saOn){
+				if((System.currentTimeMillis() > tTime) && going && ui.saOn && push){
 					if(!helpPending){
 						ui.requestAid("Timeout");
 					}
@@ -324,13 +330,13 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 							}
 						}
 					}else{
-						if(!(direction + .1 > gd && direction - .1 < gd)){
+						if(!(direction + .2 > gd && direction - .2 < gd)){
 							if(right){
-								lSpeed = .2;
-								rSpeed = -.2;
+								lSpeed = .3;
+								rSpeed = -.3;
 							}else{
-								lSpeed = -.2;
-								rSpeed = .2;
+								lSpeed = -.3;
+								rSpeed = .3;
 							}
 						}else{
 							
@@ -349,7 +355,7 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 							}
 						}
 					}
-					if(currentX + .3 > gx && currentX - .3 < gx && currentY + .3 > gy && currentY - .3 < gy){
+					if(currentX + .4 > gx && currentX - .4 < gx && currentY + .4 > gy && currentY - .4 < gy){
 						ui.sendMessage("DRIVE {Left 0.0} {Right 0.0}");
 						if(push){
 							ui.push(gx, ty, true);
@@ -357,12 +363,13 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 							//ui.setCheck("pushing");
 						}else{
 							going = false;
+							aCount = 0;
 							ui.complete();
 							tCheck = false;
 							helpPending = false;
 						}
 					}else{
-						if(dist > 5 && push){
+						if(dist > 3 && push){
 							lSpeed *= 1.5;
 							rSpeed *= 1.5;
 						}else if(dist < 1 && push){
@@ -399,6 +406,8 @@ public class SensorStatusHandler extends AbstractStatusHandler {
 	
 	public void forceComplete(){
 		going = false;
+		aCount = 0;
+		push = false;
 		ui.complete();
 		tCheck = false;
 		helpPending = false;

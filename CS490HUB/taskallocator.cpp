@@ -76,6 +76,7 @@ void TaskAllocator::addBid(int index, double bid, double strength){
     bidCount++;
     //qDebug() << bidCount << " " << activeBots;
     if(bidCount == activeBots){
+       bidCount = 0;
        chooseWinner();
     }
 }
@@ -92,6 +93,7 @@ void TaskAllocator::taskCompleted(int index){
 
 void TaskAllocator::chooseWinner(){
     qDebug() << "choosing winner";
+    tasks[currentTask].setCompleted(true);
     int winner = -1;
     int winner2 = -1;
     for(int i = 0; i < MAX_BIDS; i++){
@@ -109,20 +111,21 @@ void TaskAllocator::chooseWinner(){
             }
         }
     }
-    bidCount = 0;
+
     for(int i = 0; i < MAX_BIDS; i++){
         bids[i] = 100;
         strengths[i] = 0;
     }
     if(winner == -1 || (tasks[currentTask].getRNum() == 2 && winner2 == -1)){
-            assignNextTask();
+        tasks[currentTask].setCompleted(false);
+        assignNextTask();
     }else {
 
         activeBots--;
         if(tasks[currentTask].getRNum() == 2){
             activeBots--;
         }
-        tasks[currentTask].setCompleted(true);
+
         emit winnerFound(winner+1,winner2+1);
     }
 }
